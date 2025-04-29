@@ -75,5 +75,5 @@ The application is divided into three main modules: **Client**, **Restaurant**, 
 ---
 
 ## 🗒️ Development Notes
-
+- All API calls have crsf disable for testing with Postman 
 
