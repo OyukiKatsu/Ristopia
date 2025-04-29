@@ -4,6 +4,9 @@ from django.contrib.auth.models import User
 # Profile
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='get_User_Profile')
+    email = models.EmailField(unique=True, verbose_name='Email Address', db_column='email')
+    profile_picture = models.ImageField(upload_to='profile/', verbose_name='Profile Picture', db_column='profile_image', blank=True, null=True, default='core/perfil_predeterminado.jpg')
+
 
     class Meta:
         db_table = 'Profile'
@@ -11,7 +14,7 @@ class Profile(models.Model):
         verbose_name_plural = 'Profiles'
 
     def __str__(self):
-        return self.user.username
+        return self.user.username   
 
 # Restaurant
 class Restaurante(models.Model):
@@ -61,6 +64,9 @@ class Menu(models.Model):
 
     class Meta:
         db_table = 'Menu'
+    
+    def __str__(self):
+        return f"Menu for - {self.restaurant.name}"
 
 # Category
 class Category(models.Model):
@@ -70,6 +76,9 @@ class Category(models.Model):
 
     class Meta:
         db_table = 'Category'
+
+    def __str__(self):
+        return self.name
 
 # Category Element
 class CategoryElement(models.Model):
@@ -83,6 +92,9 @@ class CategoryElement(models.Model):
     class Meta:
         db_table = 'CategoryElement'
 
+    def __str__(self):
+        return self.name
+
 # Worker
 class Worker(models.Model):
     restaurant = models.ForeignKey(Restaurante, on_delete=models.CASCADE, related_name='get_Restaurante_Workers')
@@ -94,6 +106,8 @@ class Worker(models.Model):
     class Meta:
         db_table = 'Worker'
 
+    def __str__(self):
+        return self.user.user.username
 # Table Order
 class TableOrder(models.Model):
     table = models.ForeignKey(Table, on_delete=models.CASCADE, related_name='get_Table_Orders')
