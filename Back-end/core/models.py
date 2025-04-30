@@ -108,6 +108,7 @@ class Worker(models.Model):
 
     def __str__(self):
         return self.user.user.username
+
 # Table Order
 class TableOrder(models.Model):
     table = models.ForeignKey(Table, on_delete=models.CASCADE, related_name='get_Table_Orders')

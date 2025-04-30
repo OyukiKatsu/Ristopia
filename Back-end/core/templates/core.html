@@ -1,0 +1,52 @@
+{% load static tailwind_tags %}
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ristòpia</title>
+
+  <link rel="icon" type="image/png" href="/media/core/Icon.png" />
+  {% tailwind_css %}
+</head>
+<body>
+{% block content %}
+{% endblock content %}
+</body>
+<footer class="w-full bg-[#f3f4f6] py-12">
+  <div class="text-center">|
+    <p class="text-lg text-[#6b7280]">© 2030 Ristòpia | All rights reserved</p>
+    <div class="mt-4">
+      <a href="#" class="text-[#f87171] hover:text-[#ef4444] mx-2">Privacy Policy</a>
+      <a href="#" class="text-[#f87171] hover:text-[#ef4444] mx-2">Terms & Conditions</a>
+    </div>
+  </div>
+</footer>
+
+
+<style>
+html, body {
+  height: 100%; /* Ensure full height */
+  overflow-x: hidden; /* Hide horizontal scrollbar */
+}
+
+body {
+  overflow-y: scroll; /* Keep vertical scroll */
+}
+
+/* Hide scrollbars but still allow scrolling */
+body::-webkit-scrollbar {
+  display: none; /* For Chrome, Safari */
+}
+
+body {
+  -ms-overflow-style: none;  /* Hide scrollbar for IE */
+  scrollbar-width: none; /* Hide scrollbar for Firefox */
+}
+
+
+</style>
+</html>

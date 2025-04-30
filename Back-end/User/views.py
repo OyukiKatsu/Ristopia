@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from requests import Response
+from rest_framework.response import Response
 from core.models import Profile
 from django.contrib.auth.models import User
 from django.views import View
@@ -12,7 +12,7 @@ import json
 
 # Create your views here.
 @method_decorator(csrf_exempt, name='dispatch')
-class RegisterView(View):
+class ApiRegisterView(View):
     def post(self, request, *args, **kwargs):
         try:
             username = request.POST['username']
@@ -33,3 +33,8 @@ class RegisterView(View):
 
 
 
+class RegisterView(TemplateView):
+    template_name = 'register.html'
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name)

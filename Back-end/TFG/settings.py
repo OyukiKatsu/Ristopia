@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'tailwind',
+    'theme',
     'core',
     'restaurant',
     'User',   
@@ -155,3 +157,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Redirigir después de cerrar sesión
 LOGOUT_REDIRECT_URL = '/accounts/login/'  # Cambia esto si lo necesitas
+
+TAILWIND_APP_NAME = 'theme'
+
+NPM_BIN_PATH = "C:/Program Files/nodejs/npm.cmd"
