@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-czqt_9_*$+^5+o)qlyc4!japgnd$jg!0k430!vy*@w20ai0i4q
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -141,7 +141,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# This is important for serving static files during development
+
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
@@ -155,9 +155,12 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# Redirigir después de cerrar sesión
-LOGOUT_REDIRECT_URL = '/accounts/login/'  # Cambia esto si lo necesitas
+LOGOUT_REDIRECT_URL = '/user/login/'  
+
+ 
 
 TAILWIND_APP_NAME = 'theme'
 
 NPM_BIN_PATH = "C:/Program Files/nodejs/npm.cmd"
+
+LOGIN_URL = '/user/login/'  
