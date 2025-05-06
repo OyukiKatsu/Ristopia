@@ -8,4 +8,6 @@ urlpatterns = [
     path('owner/<int:owner_id>/', OwnerView.as_view(), name='owner_dashboard'),
     path('waiter/<int:waiter_id>/', WaiterView.as_view(), name='waiter_dashboard'),
     path('chef/<int:chef_id>/', ChefView.as_view(), name='chef_dashboard'),
+    path('dashboard/chart-data/', DashboardChartData.as_view(), name='dashboard_chart_data'),
+
 ]

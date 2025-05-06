@@ -7,7 +7,7 @@
   <div class="form-container bg-[#fef3c7] p-8 rounded-xl shadow-xl w-full max-w-md">
     <h2 class="text-3xl font-bold text-center text-[#f87171] mb-6">Create Your Account</h2>
 
-    <form method="POST" action="">
+    <form method="POST" action="" enctype="multipart/form-data">
       {% csrf_token %}
 
       <div class="inputGroup">
@@ -30,6 +30,12 @@
         <label>Repeat Password</label>
       </div>
 
+      <!-- Optional Profile Picture Upload -->
+      <div class="inputGroup">
+        <input type="file" name="profile_picture" accept="image/*">
+        <label>Profile Picture (Optional)</label>
+      </div>
+
       <button type="submit" id="submit-btn"
         class="w-full mt-4 bg-[#f87171] text-white font-bold py-2 px-4 rounded-full shadow hover:bg-[#ef4444] disabled:opacity-50 transition-all duration-300"
         disabled>
@@ -41,7 +47,6 @@
         Already have an account? Go to
         <a href="{% url 'login' %}" class="text-[#f87171] hover:text-[#ef4444] font-medium">Log In</a>
       </p>
-
     </form>
   </div>
 </div>
