@@ -18,6 +18,35 @@
   {% tailwind_css %}
 </head>
 <body>
+  <div class="fixed top-4 right-4 z-50">
+    {% if user.is_authenticated %}
+      <div class="relative">
+        <button id="userMenuBtn" class="bg-white px-4 py-2 rounded-lg shadow-md text-[#f87171] font-semibold">
+          {{ user.username }}
+        </button>
+        <div id="userDropdown" class="absolute right-0 mt-2 w-56 bg-white border rounded-lg shadow-lg hidden z-50">
+          <div class="px-4 py-3 text-sm text-gray-700">
+            {% with profile=user.get_User_Profile %}
+              {% if profile.get_Profile_Restaurantes.all %}
+                Restaurant: {{ profile.get_Profile_Restaurantes.first.name }}
+              {% elif profile.get_Profile_Workers.all %}
+                Restaurant: {{ profile.get_Profile_Workers.first.restaurant.name }}
+              {% else %}
+                Restaurant: Not Assigned
+              {% endif %}
+            {% endwith %}
+          </div>
+          <form method="POST" action="{% url 'logout' %}" class="px-4 pb-3">
+            {% csrf_token %}
+            <button type="submit" class="w-full text-left text-red-500 hover:underline">Logout</button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <a href="{% url 'custom_login' %}" class="bg-white px-4 py-2 rounded-lg shadow-md text-[#f87171] font-semibold">Login</a>
+    {% endif %}
+  </div>
+  
 {% block content %}
 {% endblock content %}
 </body>
@@ -54,6 +83,27 @@ body {
 
 
 </style>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const btn = document.getElementById("userMenuBtn");
+    const dropdown = document.getElementById("userDropdown");
+
+    // Toggle dropdown
+    btn?.addEventListener("click", function (e) {
+      e.stopPropagation();
+      dropdown.classList.toggle("hidden");
+    });
+
+    // Close if clicking outside
+    document.addEventListener("click", function (e) {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.add("hidden");
+      }
+    });
+  });
+</script>
+
+
 <script>
 
   toastr.options = {

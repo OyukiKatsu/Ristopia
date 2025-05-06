@@ -12,6 +12,8 @@ from calendar import day_name
 from datetime import datetime, timedelta
 from django.db.models.functions import TruncHour, TruncDay, TruncDate
 from django.http import JsonResponse
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 
 
 class RegisterView(TemplateView):
@@ -55,7 +57,7 @@ class RegisterView(TemplateView):
         except Exception as e:
             messages.error(request, f'Error|An error occurred: {str(e)}')
             return render(request, self.template_name)
-        return redirect('login')
+        return redirect('custom_login')
 
 
 class LoginView(TemplateView):
@@ -112,6 +114,20 @@ class LoginView(TemplateView):
 class OwnerView(TemplateView):
     template_name = 'User/owner.html'
 
+    def get(self, request, owner_id, *args, **kwargs):
+        try:
+            owner_profile = Profile.objects.get(id=owner_id)
+        except Profile.DoesNotExist:
+            raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
+
+        if request.user != owner_profile.user:
+            raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
+
+        
+
+
+        context = self.get_context_data(**kwargs)
+        return render(request, self.template_name, context)
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         owner_id = self.kwargs.get('owner_id')
@@ -143,6 +159,37 @@ class OwnerView(TemplateView):
         return context
 
     
+class MenuView(TemplateView):
+    template_name = 'User/menu.html'
+
+    def get(self, request, owner_id, *args, **kwargs):
+        try:
+            owner_profile = Profile.objects.get(id=owner_id)
+        except Profile.DoesNotExist:
+            raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
+
+        if request.user != owner_profile.user:
+            raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
+    
+        return render(request, self.template_name)
+
+
+class WorkersView(TemplateView):
+    template_name = 'User/workers.html'
+    def get(self, request, owner_id, *args, **kwargs):
+        try:
+            owner_profile = Profile.objects.get(id=owner_id)
+        except Profile.DoesNotExist:
+            raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
+
+        if request.user != owner_profile.user:
+            raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
+    
+        return render(request, self.template_name)
+
+
+
+
 
 
 class ChefView(TemplateView):

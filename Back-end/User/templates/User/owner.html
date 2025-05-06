@@ -2,7 +2,31 @@
 {% load static %}
 
 {% block content %}
+
+
 <div class="min-h-screen bg-[#fde68a] px-6 py-10">
+  <button id="menu-toggle" class="fixed top-4 left-4 z-50 p-2 focus:outline-none bg-[#fde68a] rounded">
+    <svg class="w-8 h-8 text-[#f87171]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  </button>
+  <div id="menu-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+  <!-- Sidebar Menu -->
+  <div id="sidebar-menu" class="fixed top-0 left-0 h-full w-64 bg-[#fef3c7] shadow-lg transform -translate-x-full transition-transform duration-300 z-50">
+    <div class="p-6">
+      <h2 class="text-xl font-bold text-[#f87171] mb-4">Menu</h2>
+      <ul class="space-y-4">
+        <li><a href="{% url 'owner_dashboard' owner_id=owner_id %}" class="text-[#f87171] hover:underline">Dashboard</a></li>
+        <li><a href="{%  url 'owner_menu' owner_id=owner_id %}" class="text-[#f87171] hover:underline">Menu</a></li>
+        <li><a href="{% url 'owner_workers' owner_id=owner_id %}" class="text-[#f87171] hover:underline">Workers</a></li>
+      </ul>
+    </div>
+  </div>
+
+
+
+
+
   <h1 class="text-4xl font-bold text-center text-[#f87171] mb-10">Owner Dashboard</h1>
 
   <!-- Stats Summary -->
@@ -126,6 +150,25 @@
     loadChart('most_ordered', '1d', ownerId);
   });
   </script>
-  
+  <script>
+    window.addEventListener("load", function() {
+      // Sidebar toggle
+      const menuToggle = document.getElementById("menu-toggle");
+      const sidebarMenu = document.getElementById("sidebar-menu");
+      const overlay = document.getElementById("menu-overlay");
 
+      // Open menu
+      menuToggle.addEventListener("click", function () {
+        sidebarMenu.classList.remove("-translate-x-full");
+        overlay.classList.remove("hidden");
+      });
+
+      // Close menu
+      overlay.addEventListener("click", function () {
+        sidebarMenu.classList.add("-translate-x-full");
+        overlay.classList.add("hidden");
+      });
+    });
+
+  </script>
 {% endblock %}
