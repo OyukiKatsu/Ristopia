@@ -1,0 +1,45 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ristòpia Email</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6; color: #374151;">
+  <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; margin: 0 auto;">
+    
+    <!-- Logo/Icon -->
+    <tr>
+      <td align="center" style="padding: 20px;">
+        <img src="https://i.imgur.com/SiooWs4.png" alt="Ristòpia Icon" width="64" height="64" style="display: block;" />
+      </td>
+    </tr>
+
+    <!-- Title -->
+    <tr>
+      <td align="center" style="padding: 10px 20px;">
+        <h1 style="margin: 0; font-size: 24px; color: #f87171;">{{ title }}</h1>
+      </td>
+    </tr>
+
+    <!-- Message -->
+    <tr>
+      <td align="center" style="padding: 20px; font-size: 16px; line-height: 1.5; color: #374151;">
+        {{ message|safe }}
+      </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+      <td style="background-color: #f3f4f6; padding: 20px; text-align: center; font-size: 14px; color: #6b7280;">
+        <p style="margin: 0;">© 2030 Ristòpia | All rights reserved</p>
+        <p style="margin: 4px 0;">
+          <a href="#" style="color: #f87171; text-decoration: none;">Privacy Policy</a> |
+          <a href="#" style="color: #f87171; text-decoration: none;">Terms & Conditions</a>
+        </p>
+      </td>
+    </tr>
+
+  </table>
+</body>
+</html>

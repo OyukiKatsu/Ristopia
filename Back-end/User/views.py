@@ -13,7 +13,8 @@ from datetime import datetime, timedelta
 from django.db.models.functions import TruncHour, TruncDay, TruncDate
 from django.http import JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
-
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 
 class RegisterView(TemplateView):
@@ -56,7 +57,12 @@ class RegisterView(TemplateView):
             restaurante = Restaurante.objects.create(name=restaurant_name, icon=restaurant_icon, owner=profile)
 
             messages.success(request, 'Succes|User created successfully. Login to continue!')
-
+            html_content = render_to_string("core/emails/emailbase.html", {
+                "title": "Welcome to Ristòpia, " + username,
+                "message": "Thank you for joining our platform! We're excited to have you."
+                })
+            send_mail("Welcome to Ristòpia", "", "ristopia123@gmail.com", [email], html_message=html_content)
+                        
         except Exception as e:
             messages.error(request, f'Error|An error occurred: {str(e)}')
             return render(request, self.template_name)

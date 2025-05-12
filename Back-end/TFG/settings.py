@@ -148,10 +148,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+STATIC_ROOT = BASE_DIR / 'static'
 
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -172,4 +170,18 @@ NPM_BIN_PATH = "C:/Program Files/nodejs/npm.cmd"
 
 LOGIN_URL = '/user/login/'
 
+
+
+
+
+
+
+# Email config
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = 'ristopia123@gmail.com'
+EMAIL_HOST_PASSWORD = 'barv mcgt mevu rdws' 
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = 'default from email'
 
