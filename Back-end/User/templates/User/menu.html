@@ -1,1 +1,306 @@
-Menu
+{% extends 'core/core.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-[#fde68a] flex items-center justify-center px-4 py-12">
+    <button id="menu-toggle" class="fixed top-4 left-4 z-50 p-2 focus:outline-none bg-[#fde68a] rounded">
+        <svg class="w-8 h-8 text-[#f87171]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <div id="menu-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+      <!-- Sidebar Menu -->
+      <div id="sidebar-menu" class="fixed top-0 left-0 h-full w-64 bg-[#fef3c7] shadow-lg transform -translate-x-full transition-transform duration-300 z-50">
+        <div class="p-6">
+          <h2 class="text-xl font-bold text-[#f87171] mb-4">Menu</h2>
+          <ul class="space-y-4">
+            <li><a href="{% url 'owner_dashboard' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Dashboard</a></li>
+            <li><a href="{%  url 'owner_menu' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Menu</a></li>
+            <li><a href="{% url 'owner_workers' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Workers</a></li>
+          </ul>
+        </div>
+      </div>
+
+
+
+
+    <div class="form-container bg-[#fef3c7] p-8 rounded-xl shadow-xl w-full max-w-3xl">
+        <h2 class="text-2xl font-bold mb-4">{{ restaurant.name }}</h2>
+        {% if restaurant.icon %}
+            <div class="w-full h-64 bg-cover bg-center rounded-lg shadow-md" style="background-image: url('{{ restaurant.icon.url }}');">
+            </div>
+            <br/>
+        {% endif %}
+
+        {% if not menu %}
+            <button id="create-menu-btn" class="bg-green-500 text-white px-4 py-2 rounded">
+                Ready to create your menu? +
+            </button>
+        {% else %}
+            <div id="menu-container">
+                <div id="categories" class="flex space-x-2 mb-4 overflow-x-auto">
+                    {% for category in menu.get_Menu_Categories.all %}
+                        <button class="category-btn bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-full focus:outline-none" data-id="{{ category.id }}">
+                            {{ category.name }}
+                        </button>
+                    {% endfor %}
+                    <button id="add-category-btn" class="bg-gray-300 px-4 py-2 rounded-full">+</button>
+                </div>
+                
+                <div id="category-elements">
+
+
+
+                    <!-- Category elements -->
+
+
+
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal for Category -->
+<div id="category-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white p-4 rounded-lg shadow-lg">
+        <h3 class="text-lg font-bold mb-2">Add Category</h3>
+        <input type="text" id="new-category-name" placeholder="Category Name" class="border p-2 mb-2 w-full rounded">
+        <button id="save-category-btn" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+        <button id="close-category-modal" class="ml-2 px-4 py-2 rounded">Cancel</button>
+    </div>
+</div>
+
+<!-- Modal for Element -->
+<div id="element-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white p-4 rounded-lg shadow-lg">
+        <h3 class="text-lg font-bold mb-2">Add Item</h3>
+        <input type="text" id="new-element-name" placeholder="Item Name" class="border p-2 mb-2 w-full rounded">
+        <textarea id="new-element-description" placeholder="Description" class="border p-2 mb-2 w-full rounded"></textarea>
+        <input type="number" id="new-element-price" placeholder="Price" class="border p-2 mb-2 w-full rounded">
+        <input type="number" id="new-element-cost" placeholder="Cost" class="border p-2 mb-2 w-full rounded">
+        <input type="file" id="new-element-image" class="border p-2 mb-2 w-full rounded">
+
+        <button id="save-element-btn" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+        <button id="close-element-modal" class="ml-2 px-4 py-2 rounded">Cancel</button>
+    </div>
+</div>
+
+
+
+<script>
+    window.addEventListener("load", function() {
+      // Sidebar toggle
+      const menuToggle = document.getElementById("menu-toggle");
+      const sidebarMenu = document.getElementById("sidebar-menu");
+      const overlay = document.getElementById("menu-overlay");
+
+      // Open menu
+      menuToggle.addEventListener("click", function () {
+        sidebarMenu.classList.remove("-translate-x-full");
+        overlay.classList.remove("hidden");
+      });
+
+      // Close menu
+      overlay.addEventListener("click", function () {
+        sidebarMenu.classList.add("-translate-x-full");
+        overlay.classList.add("hidden");
+      });
+    });
+
+  </script>
+
+
+<script>
+    $(document).ready(function() {
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+    
+        // Create Menu
+        $('#create-menu-btn').click(function() {
+            $.ajax({
+                url: "{% url 'create_menu' owner_id=profile.id %}",
+                type: "POST",
+                headers: {'X-CSRFToken': csrftoken},
+                success: function(response) {
+                    if (response.status === 'success') {
+                        location.reload();
+                    } else {
+                        toastr.warning('Menu already exists.', 'Warning');
+                    }
+                }
+            });
+        });
+    
+        // Show Create Category Modal
+        $('#add-category-btn').click(function() {
+            $('#category-modal').removeClass('hidden');
+        });
+    
+        $('#close-category-modal').click(function() {
+            $('#category-modal').addClass('hidden');
+        });
+    
+        // Save New Category
+        $('#save-category-btn').click(function() {
+            const name = $('#new-category-name').val();
+            const menuId = "{{ menu.id }}";
+    
+            $.ajax({
+                url: "{% url 'create_category' owner_id=profile.id %}",
+                type: "POST",
+                headers: {'X-CSRFToken': csrftoken},
+                data: {
+                    name: name,
+                    menu_id: menuId
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        const newBtn = `<button class="category-btn bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-full focus:outline-none" data-id="${response.category_id}">${response.category_name}</button>`;
+                        $('#add-category-btn').before(newBtn);
+                        $('#category-modal').addClass('hidden');
+                        $('#new-category-name').val('');
+                        toastr.success('Category added successfully.', 'Success');
+                    }
+                }
+            });
+        });
+    
+        // Load Elements for selected Category
+        function loadCategoryElements(categoryId) {
+            $.ajax({
+                url: `/user/owner/{{ profile.id }}/menu/category/${categoryId}/elements/`,
+                type: "GET",
+                success: function(response) {
+                    const elementsHtml = response.elements.map(el => `
+                        <div class="flex items-center bg-white rounded-lg shadow-md p-4 space-x-4">
+                            ${el.icon_url ? `<img src="${el.icon_url}" class="w-24 h-24 object-cover rounded" alt="${el.name}">` : ''}
+                            <div class="flex-1">
+                                <p class="font-semibold text-lg">${el.name}</p>
+                                <p class="text-sm text-gray-600">${el.description}</p>
+                                <p class="text-sm text-green-600">Price: $${el.price}</p>
+                                <p class="text-sm text-red-600">Cost: $${el.cost}</p>
+                            </div>
+                        </div>
+                    `).join('');
+    
+                    $('#category-elements').html(`
+                        <div class="mb-4">
+                            <div id="elements-list" class="space-y-4">
+                                ${elementsHtml}
+                            </div>
+                            <div class="flex justify-center">
+                                <button id="add-element-btn" class="bg-gray-300 px-4 py-2 rounded-full mt-2" data-category-id="${categoryId}">+</button>
+                            
+                            </div>
+                        </div>
+                    `);
+                },
+                error: function() {
+                    toastr.error('Failed to load items.', 'Error');
+                }
+            });
+        }
+    
+        // Category button click
+        $(document).on('click', '.category-btn', function() {
+            const categoryId = $(this).data('id');
+            $('.category-btn').removeClass('bg-blue-700');
+            $(this).addClass('bg-blue-700');
+            loadCategoryElements(categoryId);
+        });
+    
+        // Show Create Element Modal
+        $(document).on('click', '#add-element-btn', function() {
+            const categoryId = $(this).data('category-id');
+            $('#element-modal').removeClass('hidden');
+            $('#save-element-btn').data('category-id', categoryId);
+        });
+    
+        // Close Element Modal
+        $('#close-element-modal').click(function() {
+            $('#element-modal').addClass('hidden');
+        });
+    
+        // Save New Element
+        $('#save-element-btn').click(function () {
+            const categoryId = $(this).data('category-id');
+            const name = $('#new-element-name').val();
+            const description = $('#new-element-description').val();
+            const price = $('#new-element-price').val();
+            const cost = $('#new-element-cost').val();
+            const image = $('#new-element-image')[0].files[0];
+
+            const formData = new FormData();
+            formData.append('category_id', categoryId);
+            formData.append('name', name);
+            formData.append('description', description);
+            formData.append('price', price);
+            formData.append('cost', cost);
+            if (image) {
+                formData.append('icon', image);
+            }
+
+            $.ajax({
+                url: "{% url 'create_category_element' owner_id=profile.id %}",
+                type: "POST",
+                headers: { 'X-CSRFToken': csrftoken },
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    if (response.status === 'success') {
+                        const newElementHTML = `
+                            <div class="flex items-center bg-white rounded-lg shadow-md p-4 space-x-4">
+                                ${response.icon_url ? `<img src="${response.icon_url}" class="w-24 h-24 object-cover rounded" alt="${response.name}">` : ''}
+                                <div class="flex-1">
+                                    <p class="font-semibold text-lg">${response.element_name}</p>
+                                    <p class="text-sm text-gray-600">${description}</p>
+                                    <p class="text-sm text-green-600">Price: €${price}</p>
+                                    <p class="text-sm text-red-600">Cost: €${cost}</p>
+                                </div>
+                            </div>
+                        `;
+                        $('#elements-list').append(newElementHTML);
+                        $('#element-modal').addClass('hidden');
+                        $('#new-element-name').val('');
+                        $('#new-element-description').val('');
+                        $('#new-element-price').val('');
+                        $('#new-element-cost').val('');
+                        $('#new-element-image').val('');
+                        toastr.success('Item added successfully.', 'Success');
+                    } else {
+                        toastr.error('Failed to add item.', 'Error');
+                    }
+                },
+                error: function () {
+                    toastr.error('Something went wrong while adding the item.', 'Error');
+                }
+            });
+        });
+    
+        // Default selected -> first category(if it exist)
+        {% if menu and menu.get_Menu_Categories.all %}
+            const firstCategoryId = "{{ menu.get_Menu_Categories.first.id }}";
+            $(`[data-id='${firstCategoryId}']`).addClass('bg-blue-700');
+            loadCategoryElements(firstCategoryId);
+        {% endif %}
+    });
+</script>
+
+    
+{% endblock %}

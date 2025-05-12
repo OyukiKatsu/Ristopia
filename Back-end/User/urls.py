@@ -20,5 +20,10 @@ urlpatterns = [
 
     # ========== API =========== #
     path('dashboard/chart-data/', DashboardChartData.as_view(), name='dashboard_chart_data'),
+    path('owner/<int:owner_id>/menu/create/', CreateMenuView.as_view(), name='create_menu'),
+    path('owner/<int:owner_id>/menu/category/add/', CreateCategoryView.as_view(), name='create_category'),
+    path('owner/<int:owner_id>/menu/category-element/add/', CreateCategoryElementView.as_view(), name='create_category_element'),
+    path('owner/<int:owner_id>/menu/category/<int:category_id>/elements/', CategoryElementsView.as_view(), name='get_category_elements'),
+
 
 ]

@@ -83,6 +83,7 @@ class Category(models.Model):
 # Category Element
 class CategoryElement(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='get_Category_Elements')
+    icon = models.ImageField(upload_to='category_element_icons/', null=True, blank=True)
     name = models.CharField(max_length=100)
     description = models.TextField()
     price = models.DecimalField(max_digits=8, decimal_places=2)

@@ -28,6 +28,9 @@ class RegisterView(TemplateView):
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
         profile_pic = request.FILES.get('profile_picture')
+        restaurant_name = request.POST.get('restaurant_name')
+        restaurant_icon = request.FILES.get('restaurant_icon')
+
 
         if not all([username, email, password1, password2]):
             messages.error(request, 'Error|All fields are required.')
@@ -50,9 +53,9 @@ class RegisterView(TemplateView):
 
             profile = Profile.objects.create(user=user, email=email, profile_picture=profile_pic)
 
-            login(request, user)
+            restaurante = Restaurante.objects.create(name=restaurant_name, icon=restaurant_icon, owner=profile)
 
-            messages.success(request, 'Succes|User created successfully. Welcome!')
+            messages.success(request, 'Succes|User created successfully. Login to continue!')
 
         except Exception as e:
             messages.error(request, f'Error|An error occurred: {str(e)}')
@@ -150,7 +153,7 @@ class OwnerView(TemplateView):
             .first()
         )
 
-        context['stats'] = {
+        context['stats'] = { 
             'Today_Profit': round(profit, 2),
             'Today_Cost': round(cost, 2),
             'Top_Dish_Today': top_dish['category_element__name'] if top_dish else "N/A",
@@ -158,10 +161,23 @@ class OwnerView(TemplateView):
         context['owner_id'] = owner_id
         return context
 
+
+
+
     
 class MenuView(TemplateView):
     template_name = 'User/menu.html'
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile = self.request.user.get_User_Profile
+        restaurant = profile.get_Profile_Restaurantes.first()
+        menu = Menu.objects.filter(restaurant=restaurant).first()
 
+        context['profile'] = profile
+        context['restaurant'] = restaurant
+        context['menu'] = menu
+        return context
+    
     def get(self, request, owner_id, *args, **kwargs):
         try:
             owner_profile = Profile.objects.get(id=owner_id)
@@ -171,7 +187,7 @@ class MenuView(TemplateView):
         if request.user != owner_profile.user:
             raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
     
-        return render(request, self.template_name)
+        return render(request, self.template_name, self.get_context_data(**kwargs))
 
 
 class WorkersView(TemplateView):
@@ -302,3 +318,88 @@ class DashboardChartData(View):
             return JsonResponse({'error': 'Invalid chart type'}, status=400)
 
         return JsonResponse(data)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class CreateMenuView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        profile = request.user.get_User_Profile
+        restaurant = profile.get_Profile_Restaurantes.first()
+        if not Menu.objects.filter(restaurant=restaurant).exists():
+            Menu.objects.create(restaurant=restaurant)
+            messages.success(request, 'Success|Menu created successfully.')
+            return JsonResponse({'status': 'success'})
+        return JsonResponse({'status': 'exists'})
+
+
+class CreateCategoryView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        menu_id = request.POST.get('menu_id')
+        name = request.POST.get('name')
+
+        menu = get_object_or_404(Menu, id=menu_id)
+
+        category = Category.objects.create(menu=menu, name=name)
+        messages.success(request, f'Success|Category "{name}" added.')
+
+        return JsonResponse({
+            'status': 'success',
+            'category_id': category.id,
+            'category_name': category.name
+        })
+
+
+class CreateCategoryElementView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        category_id = request.POST.get('category_id')
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+        price = request.POST.get('price')
+        cost = request.POST.get('cost')
+        icon = request.FILES.get('icon') 
+
+        category = get_object_or_404(Category, id=category_id)
+
+        element = CategoryElement.objects.create(
+            category=category,
+            name=name,
+            description=description,
+            price=price,
+            cost=cost,
+            icon=icon  
+        )
+
+        messages.success(request, f'Success|Item "{name}" added to category "{category.name}".')
+        return JsonResponse({
+            'status': 'success',
+            'element_id': element.id,
+            'element_name': element.name,
+            'icon_url': element.icon.url if element.icon else ''
+        })
+    
+class CategoryElementsView(LoginRequiredMixin, View):
+    def get(self, request, owner_id, category_id):
+        elements = CategoryElement.objects.filter(category_id=category_id, active=True)
+        data = []
+        for el in elements:
+            data.append({
+                'id': el.id,
+                'name': el.name,
+                'description': el.description,
+                'price': str(el.price),
+                'cost': str(el.cost),
+                'icon_url': el.icon.url if el.icon else '',
+            })
+        return JsonResponse({'elements': data})
