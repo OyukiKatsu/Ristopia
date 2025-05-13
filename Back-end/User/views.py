@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from core.models import CategoryElement, Profile, Worker, TableOrder, Restaurante, Category, Menu
 from django.contrib.auth.models import User
 from django.views.generic import TemplateView, View
+from django.urls import reverse
 from django.utils.timezone import now, timedelta
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
@@ -12,11 +13,16 @@ from calendar import day_name
 from datetime import datetime, timedelta
 from django.db.models.functions import TruncHour, TruncDay, TruncDate
 from django.http import JsonResponse
+from django.http import HttpResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 import random
 import string
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_decode
 
 class RegisterView(TemplateView):
     template_name = 'User/register.html'
@@ -80,22 +86,15 @@ class LoginView(TemplateView):
         login_type = request.POST.get('login_type')
 
         if login_type == 'owner':
-            username_or_email = request.POST.get('username')
+            username = request.POST.get('username')
             password = request.POST.get('password')
-
-            # Support login with email or username
-            try:
-                user_obj = User.objects.get(email=username_or_email)
-                username = user_obj.username
-            except User.DoesNotExist:
-                username = username_or_email
 
             user = authenticate(request, username=username, password=password)
             if user:
                 login(request, user)
 
                 try:
-                    profile = user.get_User_Profile  # OneToOne Profile
+                    profile = user.get_User_Profile  
                     return redirect('owner_dashboard', owner_id=profile.id)
                 except Profile.DoesNotExist:
                     messages.error(request, "Error|User profile not found.")
@@ -123,6 +122,78 @@ class LoginView(TemplateView):
                 messages.error(request, "Error|Invalid or inactive login code.")
 
         return render(request, self.template_name)
+
+class ResetPasswordView(TemplateView):
+    template_name = 'User/reset-password.html'
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name)
+
+class ResetPasswordEmailView(View):
+    def post(self, request, *args, **kwargs):
+        username = request.POST.get('username')
+        user = User.objects.filter(username=username).first()
+        if user:
+
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+
+            reset_url = request.build_absolute_uri(
+                reverse('custom_password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+            )
+
+            if user:                        
+                html_content = render_to_string("core/emails/email_password_reset.html", {
+                    "title": "Reset Your Password",
+                    "message": "Click the button below to reset your password. If you didn’t request this, you can safely ignore this email.",
+                    "reset_url": reset_url
+                })
+                send_mail("Reset Your Password", "", "ristopia123@gmail.com", [user.get_User_Profile.email], html_message=html_content)
+        return HttpResponse(status=200)
+
+        
+class ResetPasswordTokenView(TemplateView):
+    template_name = 'User/reset-password-confirm.html'
+
+    def get(self, request, uidb64=None, token=None, *args, **kwargs):
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+
+        if user is not None and default_token_generator.check_token(user, token):
+            return render(request, self.template_name, {'validlink': True, 'uidb64': uidb64, 'token': token})
+        else:
+            messages.error(request, 'The reset link is invalid or has expired.')
+            return render(request, self.template_name, {'validlink': False})
+
+    def post(self, request, uidb64=None, token=None, *args, **kwargs):
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+
+        if password1 != password2:
+            messages.error(request, 'Passwords do not match.')
+            return redirect(request.path)
+
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            messages.error(request, 'Invalid user.')
+            return redirect(request.path)
+
+        if user is not None and default_token_generator.check_token(user, token):
+            user.set_password(password1)
+            user.save()
+            messages.success(request, 'Password reset successfully. You can now log in.')
+            return redirect('custom_login')
+        else:
+            messages.error(request, 'Invalid or expired link.')
+            return redirect(request.path)
+
+
+
 
 class OwnerView(TemplateView):
     template_name = 'User/owner.html'

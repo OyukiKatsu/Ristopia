@@ -59,49 +59,6 @@
     </form>
   </div>
 </div>
-
-<style>
-/* Floating label input styles */
-.inputGroup {
-  font-family: 'Segoe UI', sans-serif;
-  margin: 1.2em 0;
-  position: relative;
-}
-
-.inputGroup input {
-  font-size: 1rem;
-  padding: 0.8em;
-  outline: none;
-  border: 2px solid #d6b98b;
-  background-color: transparent;
-  border-radius: 20px;
-  width: 100%;
-  color: #1f2937;
-}
-
-.inputGroup label {
-  font-size: 1rem;
-  position: absolute;
-  left: 0;
-  padding: 0.8em;
-  margin-left: 0.5em;
-  pointer-events: none;
-  transition: all 0.3s ease;
-  color: #6b7280;
-}
-
-.inputGroup :is(input:focus, input:valid) ~ label {
-  transform: translateY(-50%) scale(0.9);
-  margin-left: 1.3em;
-  padding: 0.4em;
-  background-color: #fef3c7;
-}
-
-.inputGroup :is(input:focus, input:valid) {
-  border-color: #f87171;
-}
-</style>
-
 <script>
   // Enable submit only if all fields are filled and passwords match
   const password1 = document.getElementById('password1');

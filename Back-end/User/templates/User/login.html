@@ -22,14 +22,14 @@
   {% csrf_token %}
   <input type="hidden" name="login_type" value="owner">
 
-  <!-- 🔵 Back Button -->
+  <!-- Back Button -->
   <button type="button" onclick="goBack()" class="mb-4 text-[#6b7280] hover:text-[#ef4444] font-semibold flex items-center">
     ← Go Back
   </button>
 
   <div class="inputGroup">
     <input type="text" name="username" required autocomplete="username" />
-    <label for="username">Username or Email</label>
+    <label for="username">Username</label>
   </div>
 
   <div class="inputGroup">
@@ -37,10 +37,16 @@
     <label for="password">Password</label>
   </div>
 
+
+
   <button type="submit" class="w-full mt-4 bg-[#f87171] text-white font-bold py-2 px-4 rounded-full shadow hover:bg-[#ef4444] transition-all duration-300">
     Log In as Owner
   </button>
 
+  <p class="text-sm text-right text-[#6b7280] mt-3">
+    Forget you password?
+    <a href="{% url 'reset_password' %}" class="text-[#f87171] hover:text-[#ef4444] font-medium">Reset here</a>
+  </p>
   <p class="text-sm text-right text-[#6b7280] mt-3">
     Don’t have an account?
     <a href="{% url 'register' %}" class="text-[#f87171] hover:text-[#ef4444] font-medium">Register here</a>
@@ -53,7 +59,7 @@
   {% csrf_token %}
   <input type="hidden" name="login_type" value="worker">
 
-  <!-- 🔵 Back Button -->
+  <!-- Back Button -->
   <button type="button" onclick="goBack()" class="mb-4 text-[#6b7280] hover:text-[#ef4444] font-semibold flex items-center">
     ← Go Back
   </button>
@@ -70,49 +76,6 @@
 
   </div>
 </div>
-
-<!-- Floating label styles (same as before) -->
-<style>
-.inputGroup {
-  font-family: 'Segoe UI', sans-serif;
-  margin: 1em 0;
-  position: relative;
-  max-width: 100%;
-}
-
-.inputGroup input {
-  font-size: 100%;
-  padding: 0.8em;
-  outline: none;
-  border: 2px solid rgb(200, 200, 200);
-  background-color: transparent;
-  border-radius: 20px;
-  width: 100%;
-}
-
-.inputGroup label {
-  font-size: 100%;
-  position: absolute;
-  left: 0;
-  padding: 0.8em;
-  margin-left: 0.5em;
-  pointer-events: none;
-  transition: all 0.3s ease;
-  color: rgb(100, 100, 100);
-}
-
-.inputGroup :is(input:focus, input:valid)~label {
-  transform: translateY(-50%) scale(0.9);
-  margin: 0;
-  margin-left: 1.3em;
-  padding: 0.4em;
-  background-color: #fef3c7;
-}
-
-.inputGroup :is(input:focus, input:valid) {
-  border-color: rgb(150, 150, 200);
-}
-</style>
 
 <!-- JavaScript to toggle forms -->
 <script>
