@@ -15,7 +15,8 @@ from django.http import JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
-
+import random
+import string
 
 class RegisterView(TemplateView):
     template_name = 'User/register.html'
@@ -107,6 +108,9 @@ class LoginView(TemplateView):
             try:
                 worker = Worker.objects.get(login_code=login_code, active=True)
                 user = worker.user.user  # Profile → User
+
+                
+
                 login(request, user)
 
                 if worker.type == 'Chef':
@@ -198,6 +202,7 @@ class MenuView(TemplateView):
 
 class WorkersView(TemplateView):
     template_name = 'User/workers.html'
+            
     def get(self, request, owner_id, *args, **kwargs):
         try:
             owner_profile = Profile.objects.get(id=owner_id)
@@ -206,8 +211,17 @@ class WorkersView(TemplateView):
 
         if request.user != owner_profile.user:
             raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
-    
-        return render(request, self.template_name)
+
+        profile = Profile.objects.get(id=owner_id)
+        restaurant = profile.get_Profile_Restaurantes.first()
+        workers = restaurant.get_Restaurante_Workers.all()
+        context = {
+            'restaurant': restaurant,
+            'workers': workers,
+            'profile': profile,
+            }
+
+        return render(request, self.template_name, context)
 
 
 
@@ -409,3 +423,65 @@ class CategoryElementsView(LoginRequiredMixin, View):
                 'icon_url': el.icon.url if el.icon else '',
             })
         return JsonResponse({'elements': data})
+    
+
+
+
+
+
+
+class CreateWorkerView(View):
+
+    def generate_unique_login_code(self):
+        characters = string.ascii_uppercase + string.digits
+        while True:
+            code = ''.join(random.choices(characters, k=5))
+            if not Worker.objects.filter(login_code=code).exists():
+                return code
+        
+    def post(self, request, owner_id):
+        profile = get_object_or_404(Profile, id=owner_id)
+        restaurant = profile.get_Profile_Restaurantes.first()
+
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        worker_type = request.POST.get('type')
+        picture = request.FILES.get('picture')
+
+        if not username or not email or not worker_type:
+            return JsonResponse({'status': 'error', 'message': 'Missing required fields.'})
+
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({'status': 'error', 'message': 'Username already exists.'})
+        if Profile.objects.filter(email=email).exists():
+            return JsonResponse({'status': 'error', 'message': 'Email already in use.'})
+
+        try:
+            user = User.objects.create(username=username)
+            user.set_unusable_password()
+            user.save()
+
+            worker_profile = Profile.objects.create(user=user, email=email, profile_picture=picture)
+
+            login_code = self.generate_unique_login_code()
+
+            worker = Worker.objects.create(restaurant=restaurant, user=worker_profile, login_code=login_code, type=worker_type, active=True)
+            
+            html_content = render_to_string("core/emails/emailbase.html", {
+                "title": "You have been registered as a " + worker_type + " at " + restaurant.name + ".",
+                "message": "Your login code is: " + login_code
+            })
+            send_mail("Registered at "+ restaurant.name, "", "ristopia123@gmail.com", [email], html_message=html_content)            
+
+            return JsonResponse({
+                'status': 'success',
+                'username': user.username,
+                'email': worker_profile.email,
+                'type': worker_type,
+                'login_code': worker.login_code,
+                'profile_picture_url': worker_profile.profile_picture.url if worker_profile.profile_picture else ''
+            })
+
+
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})

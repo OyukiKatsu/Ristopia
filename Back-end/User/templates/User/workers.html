@@ -2,9 +2,162 @@
 {% load static %}
 
 {% block content %}
-<div class="min-h-screen bg-[#fde68a] flex items-center justify-center px-4 py-12">
-    <div class="form-container bg-[#fef3c7] p-8 rounded-xl shadow-xl w-full max-w-md">
-    <p>Workers</p>
+<div class="min-h-screen bg-[#fde68a] flex flex-col items-center px-4 py-12">
+
+  <!-- Sidebar Toggle Button -->
+  <button id="menu-toggle" class="fixed top-4 left-4 z-50 p-2 bg-[#fde68a] rounded">
+    <svg class="w-8 h-8 text-[#f87171]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  </button>
+
+  <!-- Sidebar Overlay & Menu -->
+  <div id="menu-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+  <div id="sidebar-menu" class="fixed top-0 left-0 h-full w-64 bg-[#fef3c7] shadow transform -translate-x-full transition-transform duration-300 z-50">
+    <div class="p-6">
+      <h2 class="text-xl font-bold text-[#f87171] mb-4">Menu</h2>
+      <ul class="space-y-4">
+        <li><a href="{% url 'owner_dashboard' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Dashboard</a></li>
+        <li><a href="{% url 'owner_menu' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Menu</a></li>
+        <li><a href="{% url 'owner_workers' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Workers</a></li>
+      </ul>
     </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="bg-yellow-50 p-8 rounded-xl shadow-xl w-full max-w-3xl mt-8">
+    <h2 class="text-2xl font-bold mb-4">{{ restaurant.name }}</h2>
+    <div class="flex justify-center">
+      <button id="add-worker-btn" class="bg-green-500 text-white px-4 py-2 rounded mb-6">Add Worker +</button>
+    </div>
+
+    <div id="worker-list" class="space-y-4">
+      {% for worker in workers %}
+      <div class="bg-white shadow rounded-lg p-4 flex space-x-4 items-center">
+        <img src="{{ worker.user.profile_picture.url }}" alt="Profile" class="w-20 h-20 object-cover rounded">
+        <div>
+          <p class="font-semibold text-lg">{{ worker.user.user.username }}</p>
+          <p class="text-sm text-gray-600">{{ worker.user.email }}</p>
+          <p class="text-sm text-blue-600">Code: {{ worker.login_code }}</p>
+          <p class="text-sm">Role: {{ worker.type }}</p>
+          <p class="text-sm {% if worker.active %}text-green-600{% else %}text-red-500{% endif %}">
+            {{ worker.active|yesno:"Active,Inactive" }}
+          </p>
+        </div>
+      </div>
+      {% empty %}
+      <p class="text-gray-500" id="no-workers-msg">No workers yet.</p>
+      {% endfor %}
+    </div>
+  </div>
 </div>
-{% endblock content %}
+
+<!-- Modal -->
+<div id="worker-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded shadow-lg w-96">
+    <h3 class="text-xl font-semibold mb-4">Add Worker</h3>
+    <input type="text" id="worker-username" placeholder="Username" class="w-full border p-2 rounded mb-2">
+    <input type="email" id="worker-email" placeholder="Email" class="w-full border p-2 rounded mb-2">
+    <input type="file" id="worker-picture" accept="image/*" class="mb-4">
+    <select id="worker-type" class="w-full border p-2 rounded mb-4">
+      <option value="Waiter">Waiter</option>
+      <option value="Chef">Chef</option>
+    </select>
+    <div class="flex justify-end space-x-2">
+      <button id="create-worker-submit" class="bg-blue-500 text-white px-4 py-2 rounded">Create</button>
+      <button id="worker-modal-close" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const modal = document.getElementById("worker-modal");
+    const openBtn = document.getElementById("add-worker-btn");
+    const closeBtn = document.getElementById("worker-modal-close");
+    const submitBtn = document.getElementById("create-worker-submit");
+
+    openBtn.addEventListener("click", () => modal.classList.remove("hidden"));
+    closeBtn.addEventListener("click", () => modal.classList.add("hidden"));
+
+    submitBtn.addEventListener("click", async () => {
+      const username = document.getElementById("worker-username").value;
+      const email = document.getElementById("worker-email").value;
+      const picture = document.getElementById("worker-picture").files[0];
+      const type = document.getElementById("worker-type").value;
+
+      const formData = new FormData();
+      formData.append("username", username);
+      formData.append("email", email);
+      formData.append("type", type);
+      if (picture) formData.append("picture", picture);
+
+      try {
+        const response = await fetch("{% url 'create_worker' owner_id=profile.id %}", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+          },
+          body: formData
+        });
+
+        const data = await response.json();
+        if (data.status === "success") {
+          // Remove "no workers" message if present
+          const noWorkersMsg = document.getElementById("no-workers-msg");
+          if (noWorkersMsg) noWorkersMsg.remove();
+
+          // Create new worker card
+          const workerHtml = `
+            <div class="bg-white shadow rounded-lg p-4 flex space-x-4 items-center">
+              <img src="${data.profile_picture_url}" alt="Profile" class="w-20 h-20 object-cover rounded">
+              <div>
+                <p class="font-semibold text-lg">${data.username}</p>
+                <p class="text-sm text-gray-600">${data.email}</p>
+                <p class="text-sm text-blue-600">Code: ${data.login_code}</p>
+                <p class="text-sm">Role: ${data.type}</p>
+                <p class="text-sm text-green-600">Active</p>
+              </div>
+            </div>
+          `;
+          document.getElementById("worker-list").insertAdjacentHTML("beforeend", workerHtml);
+
+          modal.classList.add("hidden");
+          document.getElementById("worker-username").value = "";
+          document.getElementById("worker-email").value = "";
+          document.getElementById("worker-picture").value = "";
+          document.getElementById("worker-type").value = "Waiter";
+
+          toastr.success("Worker " + data.username + " created successfully.", "Success");
+        } else {
+          toastr.error(data.message || "Error creating worker.");
+        }
+      } catch (err) {
+        toastr.error("Something went wrong. Try again.");
+      }
+    });
+  });
+</script>
+  <script>
+    window.addEventListener("load", function() {
+      // Sidebar toggle
+      const menuToggle = document.getElementById("menu-toggle");
+      const sidebarMenu = document.getElementById("sidebar-menu");
+      const overlay = document.getElementById("menu-overlay");
+
+      // Open menu
+      menuToggle.addEventListener("click", function () {
+        sidebarMenu.classList.remove("-translate-x-full");
+        overlay.classList.remove("hidden");
+      });
+
+      // Close menu
+      overlay.addEventListener("click", function () {
+        sidebarMenu.classList.add("-translate-x-full");
+        overlay.classList.add("hidden");
+      });
+    });
+
+  </script>
+{% endblock %}
