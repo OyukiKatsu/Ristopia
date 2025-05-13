@@ -52,27 +52,33 @@ The application is divided into three main modules: **Client**, **Restaurant**, 
 
 ## 🚧 To-Do List
 
-### ✅ Backend API
+### ✅ Done
 
-- [x] POST-API for `Profile`
-- [x] POST-API for `Restaurant`
-- [x] POST-API for `Menu`
-- [x] POST-API for `Category`
-- [x] POST-API for `CategoryElement`
+- [x] Django email system
+- [x] Register view
+- [x] Login view(Owner)
+- [x] Login view(Worker)
+- [x] Forget Password System
+- [x] Owner statistics dashboard
+- [x] Owner menu dashboard
+- [x] Owner worker dashboard
+- [x] Create for Category
+- [x] Create for element
+- [x] Create for worker
+
+
 
 ### 🛠️ Still to do
 
-- [ ] GET/PUT/DELETE APIs for all models
-- [ ] QR Code generation for tables
-- [ ] Graphical floor plan editor
-- [ ] Staff login system via unique code
-- [ ] Role-based UI rendering (Waiter/Cook)
-- [ ] Client menu interface via QR code
-- [ ] Real-time order updates between staff
-- [ ] Table release and total calculation
-- [ ] Menu item management (activation/deactivation)
+- [ ] Edit for category
+- [ ] Delete for category
+- [ ] Edit for element
+- [ ] Delete for element
+- [ ] Edit for worker
+- [ ] Delete for worker
+- [ ] Chef view
+- [ ] Waiter view
+- [ ] Create restaurant map
+- [ ] Update restaurant map
 
 ---
-
-## 🗒️ Development Notes
-- All API calls have crsf disable for testing with Postman 
