@@ -460,17 +460,26 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
         price = request.POST.get('price')
         cost = request.POST.get('cost')
         icon = request.FILES.get('icon') 
+        
 
         category = get_object_or_404(Category, id=category_id)
-
-        element = CategoryElement.objects.create(
-            category=category,
-            name=name,
-            description=description,
-            price=price,
-            cost=cost,
-            icon=icon  
-        )
+        if icon:
+            element = CategoryElement.objects.create(
+                category=category,
+                name=name,
+                description=description,
+                price=price,
+                cost=cost,
+                icon=icon  
+            )
+        else:
+            element = CategoryElement.objects.create(
+                category=category,
+                name=name,
+                description=description,
+                price=price,
+                cost=cost
+            )
 
         messages.success(request, f'Success|Item "{name}" added to category "{category.name}".')
         return JsonResponse({
@@ -482,7 +491,7 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
     
 class CategoryElementsView(LoginRequiredMixin, View):
     def get(self, request, owner_id, category_id):
-        elements = CategoryElement.objects.filter(category_id=category_id, active=True)
+        elements = CategoryElement.objects.filter(category_id=category_id)
         data = []
         for el in elements:
             data.append({
@@ -531,9 +540,10 @@ class CreateWorkerView(View):
             user = User.objects.create(username=username)
             user.set_unusable_password()
             user.save()
-
-            worker_profile = Profile.objects.create(user=user, email=email, profile_picture=picture)
-
+            if picture:
+                worker_profile = Profile.objects.create(user=user, email=email, profile_picture=picture)
+            else:
+                worker_profile = Profile.objects.create(user=user, email=email)
             login_code = self.generate_unique_login_code()
 
             worker = Worker.objects.create(restaurant=restaurant, user=worker_profile, login_code=login_code, type=worker_type, active=True)

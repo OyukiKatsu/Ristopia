@@ -186,4 +186,4 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'default from email'
 
 # Token config (seconds)
-PASSWORD_RESET_TIMEOUT = 3600  
+PASSWORD_RESET_TIMEOUT = 3600
