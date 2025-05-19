@@ -3,304 +3,325 @@
 
 {% block content %}
 <div class="min-h-screen bg-[#fde68a] flex items-center justify-center px-4 py-12">
-    <button id="menu-toggle" class="fixed top-4 left-4 z-50 p-2 focus:outline-none bg-[#fde68a] rounded">
-        <svg class="w-8 h-8 text-[#f87171]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
+  <!-- Sidebar toggle & overlay -->
+  <button id="menu-toggle" class="fixed top-4 left-4 z-50 p-2 focus:outline-none bg-[#fde68a] rounded">
+    <svg class="w-8 h-8 text-[#f87171]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  </button>
+  <div id="menu-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+
+  <!-- Sidebar -->
+  <div id="sidebar-menu"
+       class="fixed top-0 left-0 h-full w-64 bg-[#fef3c7] shadow-lg transform -translate-x-full transition-transform duration-300 z-50">
+    <div class="p-6">
+      <h2 class="text-xl font-bold text-[#f87171] mb-4">Menu</h2>
+      <ul class="space-y-4">
+        <li><a href="{% url 'owner_dashboard' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Dashboard</a></li>
+        <li><a href="{% url 'owner_menu' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Menu</a></li>
+        <li><a href="{% url 'owner_workers' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Workers</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="form-container bg-[#fef3c7] p-8 rounded-xl shadow-xl w-full max-w-3xl">
+    <h2 class="text-2xl font-bold mb-4">{{ restaurant.name }}</h2>
+    {% if restaurant.icon %}
+      <div class="w-full h-64 bg-cover bg-center rounded-lg shadow-md"
+           style="background-image: url('{{ restaurant.icon.url }}');"></div><br/>
+    {% endif %}
+
+    {% if not menu %}
+      <button id="create-menu-btn" class="bg-green-500 text-white px-4 py-2 rounded">
+        Ready to create your menu? +
       </button>
-      <div id="menu-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
-      <!-- Sidebar Menu -->
-      <div id="sidebar-menu" class="fixed top-0 left-0 h-full w-64 bg-[#fef3c7] shadow-lg transform -translate-x-full transition-transform duration-300 z-50">
-        <div class="p-6">
-          <h2 class="text-xl font-bold text-[#f87171] mb-4">Menu</h2>
-          <ul class="space-y-4">
-            <li><a href="{% url 'owner_dashboard' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Dashboard</a></li>
-            <li><a href="{%  url 'owner_menu' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Menu</a></li>
-            <li><a href="{% url 'owner_workers' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Workers</a></li>
-          </ul>
+    {% else %}
+      <div id="menu-container">
+        <div id="categories" class="flex space-x-2 mb-4 overflow-x-auto">
+          {% for category in menu.get_Menu_Categories.all %}
+            <button class="category-btn bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-full focus:outline-none"
+                    data-id="{{ category.id }}">
+              {{ category.name }}
+            </button>
+          {% endfor %}
+          <button id="add-category-btn" class="bg-gray-300 px-4 py-2 rounded-full">+</button>
+        </div>
+        <div id="category-elements">
+          <!-- elements loaded here -->
         </div>
       </div>
-
-
-
-
-    <div class="form-container bg-[#fef3c7] p-8 rounded-xl shadow-xl w-full max-w-3xl">
-        <h2 class="text-2xl font-bold mb-4">{{ restaurant.name }}</h2>
-        {% if restaurant.icon %}
-            <div class="w-full h-64 bg-cover bg-center rounded-lg shadow-md" style="background-image: url('{{ restaurant.icon.url }}');">
-            </div>
-            <br/>
-        {% endif %}
-
-        {% if not menu %}
-            <button id="create-menu-btn" class="bg-green-500 text-white px-4 py-2 rounded">
-                Ready to create your menu? +
-            </button>
-        {% else %}
-            <div id="menu-container">
-                <div id="categories" class="flex space-x-2 mb-4 overflow-x-auto">
-                    {% for category in menu.get_Menu_Categories.all %}
-                        <button class="category-btn bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-full focus:outline-none" data-id="{{ category.id }}">
-                            {{ category.name }}
-                        </button>
-                    {% endfor %}
-                    <button id="add-category-btn" class="bg-gray-300 px-4 py-2 rounded-full">+</button>
-                </div>
-                
-                <div id="category-elements">
-
-
-
-                    <!-- Category elements -->
-
-
-
-                </div>
-            </div>
-        {% endif %}
-    </div>
+    {% endif %}
+  </div>
 </div>
 
-<!-- Modal for Category -->
+<!-- Category Modal -->
 <div id="category-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white p-4 rounded-lg shadow-lg">
-        <h3 class="text-lg font-bold mb-2">Add Category</h3>
-        <input type="text" id="new-category-name" placeholder="Category Name" class="border p-2 mb-2 w-full rounded">
-        <button id="save-category-btn" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
-        <button id="close-category-modal" class="ml-2 px-4 py-2 rounded">Cancel</button>
-    </div>
+  <div class="bg-white p-4 rounded-lg shadow-lg">
+    <h3 class="text-lg font-bold mb-2">Add Category</h3>
+    <input type="text" id="new-category-name" placeholder="Category Name"
+           class="border p-2 mb-2 w-full rounded">
+    <button id="save-category-btn" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+    <button id="close-category-modal" class="ml-2 px-4 py-2 rounded">Cancel</button>
+  </div>
 </div>
 
-<!-- Modal for Element -->
+<!-- Element Modal -->
 <div id="element-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white p-4 rounded-lg shadow-lg">
-        <h3 class="text-lg font-bold mb-2">Add Item</h3>
-        <input type="text" id="new-element-name" placeholder="Item Name" class="border p-2 mb-2 w-full rounded">
-        <textarea id="new-element-description" placeholder="Description" class="border p-2 mb-2 w-full rounded"></textarea>
-        <input type="number" id="new-element-price" placeholder="Price" class="border p-2 mb-2 w-full rounded">
-        <input type="number" id="new-element-cost" placeholder="Cost" class="border p-2 mb-2 w-full rounded">
-        <input type="file" id="new-element-image" class="border p-2 mb-2 w-full rounded">
+  <div class="bg-white p-4 rounded-lg shadow-lg">
+    <h3 class="text-lg font-bold mb-2">Add / Edit Item</h3>
+    <input type="text" id="new-element-name" placeholder="Item Name"
+           class="border p-2 mb-2 w-full rounded">
+    <textarea id="new-element-description" placeholder="Description"
+              class="border p-2 mb-2 w-full rounded"></textarea>
+    <input type="number" id="new-element-price" placeholder="Price"
+           class="border p-2 mb-2 w-full rounded">
+    <input type="number" id="new-element-cost" placeholder="Cost"
+           class="border p-2 mb-2 w-full rounded">
+    <input type="file" id="new-element-image" class="border p-2 mb-2 w-full rounded">
 
-        <button id="save-element-btn" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
-        <button id="close-element-modal" class="ml-2 px-4 py-2 rounded">Cancel</button>
-    </div>
+    <button id="save-element-btn" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+    <button id="close-element-modal" class="ml-2 px-4 py-2 rounded">Cancel</button>
+  </div>
 </div>
 
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white p-4 rounded-lg shadow-lg text-center">
+    <p class="mb-4">Are you sure you want to delete this item?</p>
+    <button id="confirm-delete-btn" class="bg-red-500 text-white px-4 py-2 rounded mr-2">Delete</button>
+    <button id="cancel-delete-btn" class="px-4 py-2 rounded">Cancel</button>
+  </div>
+</div>
 
-
+<!-- Sidebar toggle script -->
 <script>
-    window.addEventListener("load", function() {
-      // Sidebar toggle
-      const menuToggle = document.getElementById("menu-toggle");
-      const sidebarMenu = document.getElementById("sidebar-menu");
-      const overlay = document.getElementById("menu-overlay");
-
-      // Open menu
-      menuToggle.addEventListener("click", function () {
-        sidebarMenu.classList.remove("-translate-x-full");
-        overlay.classList.remove("hidden");
-      });
-
-      // Close menu
-      overlay.addEventListener("click", function () {
-        sidebarMenu.classList.add("-translate-x-full");
-        overlay.classList.add("hidden");
-      });
+  window.addEventListener("load", () => {
+    const toggle = document.getElementById("menu-toggle");
+    const sidebar = document.getElementById("sidebar-menu");
+    const overlay = document.getElementById("menu-overlay");
+    toggle.addEventListener("click", () => {
+      sidebar.classList.remove("-translate-x-full");
+      overlay.classList.remove("hidden");
     });
-
-  </script>
-
-
-<script>
-    $(document).ready(function() {
-        // Get CSRF token
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-        const csrftoken = getCookie('csrftoken');
-    
-        // Create Menu
-        $('#create-menu-btn').click(function() {
-            $.ajax({
-                url: "{% url 'create_menu' owner_id=profile.id %}",
-                type: "POST",
-                headers: {'X-CSRFToken': csrftoken},
-                success: function(response) {
-                    if (response.status === 'success') {
-                        location.reload();
-                    } else {
-                        toastr.warning('Menu already exists.', 'Warning');
-                    }
-                }
-            });
-        });
-    
-        // Show Create Category Modal
-        $('#add-category-btn').click(function() {
-            $('#category-modal').removeClass('hidden');
-        });
-    
-        $('#close-category-modal').click(function() {
-            $('#category-modal').addClass('hidden');
-        });
-    
-        // Save New Category
-        $('#save-category-btn').click(function() {
-            const name = $('#new-category-name').val();
-            const menuId = "{{ menu.id }}";
-    
-            $.ajax({
-                url: "{% url 'create_category' owner_id=profile.id %}",
-                type: "POST",
-                headers: {'X-CSRFToken': csrftoken},
-                data: {
-                    name: name,
-                    menu_id: menuId
-                },
-                success: function(response) {
-                    if (response.status === 'success') {
-                        const newBtn = `<button class="category-btn bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-full focus:outline-none" data-id="${response.category_id}">${response.category_name}</button>`;
-                        $('#add-category-btn').before(newBtn);
-                        $('#category-modal').addClass('hidden');
-                        $('#new-category-name').val('');
-                        toastr.success('Category added successfully.', 'Success');
-                    }
-                }
-            });
-        });
-    
-        // Load Elements for selected Category
-        function loadCategoryElements(categoryId) {
-            $.ajax({
-                url: `/user/owner/{{ profile.id }}/menu/category/${categoryId}/elements/`,
-                type: "GET",
-                success: function(response) {
-                    const elementsHtml = response.elements.map(el => `
-                        <div class="flex items-center bg-white rounded-lg shadow-md p-4 space-x-4">
-                            ${el.icon_url ? `<img src="${el.icon_url}" class="w-24 h-24 object-cover rounded" alt="${el.name}">` : ''}
-                            <div class="flex-1">
-                                <p class="font-semibold text-lg">${el.name}</p>
-                                <p class="text-sm text-gray-600">${el.description}</p>
-                                <p class="text-sm text-green-600">Price: $${el.price}</p>
-                                <p class="text-sm text-red-600">Cost: $${el.cost}</p>
-                            </div>
-                        </div>
-                    `).join('');
-    
-                    $('#category-elements').html(`
-                        <div class="mb-4">
-                            <div id="elements-list" class="space-y-4">
-                                ${elementsHtml}
-                            </div>
-                            <div class="flex justify-center">
-                                <button id="add-element-btn" class="bg-gray-300 px-4 py-2 rounded-full mt-2" data-category-id="${categoryId}">+</button>
-                            
-                            </div>
-                        </div>
-                    `);
-                },
-                error: function() {
-                    toastr.error('Failed to load items.', 'Error');
-                }
-            });
-        }
-    
-        // Category button click
-        $(document).on('click', '.category-btn', function() {
-            const categoryId = $(this).data('id');
-            $('.category-btn').removeClass('bg-blue-700');
-            $(this).addClass('bg-blue-700');
-            loadCategoryElements(categoryId);
-        });
-    
-        // Show Create Element Modal
-        $(document).on('click', '#add-element-btn', function() {
-            const categoryId = $(this).data('category-id');
-            $('#element-modal').removeClass('hidden');
-            $('#save-element-btn').data('category-id', categoryId);
-        });
-    
-        // Close Element Modal
-        $('#close-element-modal').click(function() {
-            $('#element-modal').addClass('hidden');
-        });
-    
-        // Save New Element
-        $('#save-element-btn').click(function () {
-            const categoryId = $(this).data('category-id');
-            const name = $('#new-element-name').val();
-            const description = $('#new-element-description').val();
-            const price = $('#new-element-price').val();
-            const cost = $('#new-element-cost').val();
-            const image = $('#new-element-image')[0].files[0];
-
-            const formData = new FormData();
-            formData.append('category_id', categoryId);
-            formData.append('name', name);
-            formData.append('description', description);
-            formData.append('price', price);
-            formData.append('cost', cost);
-            if (image) {
-                formData.append('icon', image);
-            }
-
-            $.ajax({
-                url: "{% url 'create_category_element' owner_id=profile.id %}",
-                type: "POST",
-                headers: { 'X-CSRFToken': csrftoken },
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (response) {
-                    if (response.status === 'success') {
-                        const newElementHTML = `
-                            <div class="flex items-center bg-white rounded-lg shadow-md p-4 space-x-4">
-                                ${response.icon_url ? `<img src="${response.icon_url}" class="w-24 h-24 object-cover rounded" alt="${response.name}">` : ''}
-                                <div class="flex-1">
-                                    <p class="font-semibold text-lg">${response.element_name}</p>
-                                    <p class="text-sm text-gray-600">${description}</p>
-                                    <p class="text-sm text-green-600">Price: €${price}</p>
-                                    <p class="text-sm text-red-600">Cost: €${cost}</p>
-                                </div>
-                            </div>
-                        `;
-                        $('#elements-list').append(newElementHTML);
-                        $('#element-modal').addClass('hidden');
-                        $('#new-element-name').val('');
-                        $('#new-element-description').val('');
-                        $('#new-element-price').val('');
-                        $('#new-element-cost').val('');
-                        $('#new-element-image').val('');
-                        toastr.success('Item added successfully.', 'Success');
-                    } else {
-                        toastr.error('Failed to add item.', 'Error');
-                    }
-                },
-                error: function () {
-                    toastr.error('Something went wrong while adding the item.', 'Error');
-                }
-            });
-        });
-    
-        // Default selected -> first category(if it exist)
-        {% if menu and menu.get_Menu_Categories.all %}
-            const firstCategoryId = "{{ menu.get_Menu_Categories.first.id }}";
-            $(`[data-id='${firstCategoryId}']`).addClass('bg-blue-700');
-            loadCategoryElements(firstCategoryId);
-        {% endif %}
+    overlay.addEventListener("click", () => {
+      sidebar.classList.add("-translate-x-full");
+      overlay.classList.add("hidden");
     });
+  });
 </script>
 
-    
+<!-- Main JS -->
+<script>
+  $(document).ready(function() {
+    // CSRF and ownerId
+    const csrftoken = document.cookie.split('; ').find(c => c.startsWith('csrftoken')).split('=')[1];
+    const ownerId = "{{ profile.id }}";
+    let pendingDeleteId = null;
+
+    // Create menu
+    $('#create-menu-btn').click(() => {
+      $.post(`/user/owner/${ownerId}/menu/create/`, {}, () => location.reload())
+       .fail(() => toastr.error('Could not create menu.'));
+    });
+
+    // Category modal
+    $('#add-category-btn').click(() => $('#category-modal').removeClass('hidden'));
+    $('#close-category-modal').click(() => $('#category-modal').addClass('hidden'));
+    $('#save-category-btn').click(() => {
+      const name = $('#new-category-name').val();
+      $.post(`/user/owner/${ownerId}/menu/category/add/`,
+             { name, menu_id: "{{ menu.id }}" },
+             res => {
+               if(res.status==='success'){
+                 $('#add-category-btn').before(
+                   `<button class="category-btn bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-full" data-id="${res.category_id}">${res.category_name}</button>`
+                 );
+                 $('#new-category-name').val('');
+                 $('#category-modal').addClass('hidden');
+                 toastr.success('Category added.');
+               }
+             })
+       .fail(() => toastr.error('Failed to add category.'));
+    });
+
+    // Load elements
+    function loadCategoryElements(catId) {
+      $.get(`/user/owner/${ownerId}/menu/category/${catId}/elements/`)
+       .done(response => {
+         const cards = response.elements.map(el => `
+           <div id="element-${el.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4">
+             ${el.icon_url
+               ? `<img src="${el.icon_url}" class="w-24 h-24 object-cover rounded">`
+               : `<div class="w-24 h-24 bg-gray-100 rounded flex items-center justify-center">No Image</div>`
+             }
+             <div class="flex-1">
+               <p class="font-semibold text-lg">${el.name}</p>
+               <p class="text-sm text-gray-600">${el.description}</p>
+               <p class="text-sm text-green-600">Price: €${el.price}</p>
+               <p class="text-sm text-red-600">Cost: €${el.cost}</p>
+             </div>
+
+             <!-- Tailwind peer-based Toggle switch -->
+             <label class="flex items-center space-x-2 cursor-pointer">
+              <span class="text-sm toggle-label">${el.active ? 'Active' : 'Inactive'}</span>
+              <div class="relative">
+                <input
+                  type="checkbox"
+                  class="sr-only peer toggle-active"
+                  data-element-id="${el.id}"
+                  ${el.active ? 'checked' : ''}
+                />
+                <!-- track: slightly taller -->
+                <div class="w-12 h-6 bg-gray-300 rounded-full peer-checked:bg-green-400 transition-colors"></div>
+                <!-- thumb: 1px smaller, perfectly centered -->
+                <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform
+                            peer-checked:translate-x-6"></div>
+              </div>
+            </label>
+
+
+             <!-- 3-dot menu -->
+             <div class="relative ml-4">
+               <button class="three-dots p-2">
+                 <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                   <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z"/>
+                 </svg>
+               </button>
+               <div class="dropdown absolute right-0 mt-2 w-32 bg-white border rounded shadow-lg hidden z-10">
+                 <button class="w-full text-left px-4 py-2 hover:bg-gray-100 edit-element" data-element-id="${el.id}">Edit</button>
+                 <button class="w-full text-left px-4 py-2 hover:bg-gray-100 delete-element" data-element-id="${el.id}">Delete</button>
+               </div>
+             </div>
+           </div>
+         `).join('');
+         $('#category-elements').html(`
+           <div class="mb-4">
+             <div id="elements-list" class="space-y-4">${cards}</div>
+             <div class="flex justify-center">
+               <button id="add-element-btn" class="bg-gray-300 px-4 py-2 rounded-full mt-2" data-category-id="${catId}">+</button>
+             </div>
+           </div>
+         `);
+       })
+       .fail(() => toastr.error('Failed to load items.'));
+    }
+
+    // Category select
+    $(document).on('click', '.category-btn', function() {
+      $('.category-btn').removeClass('bg-blue-700');
+      $(this).addClass('bg-blue-700');
+      loadCategoryElements($(this).data('id'));
+    });
+
+    // Add element
+    $(document).on('click', '#add-element-btn', function() {
+      $('#element-modal')
+        .removeClass('hidden')
+        .find('#save-element-btn')
+          .data('category-id', $(this).data('category-id'))
+          .removeData('element-id')
+          .text('Save');
+    });
+    $('#close-element-modal').click(() => $('#element-modal').addClass('hidden'));
+
+    // Toggle active
+    $(document).on('change', '.toggle-active', function() {
+          const id = $(this).data('element-id');
+          $.post({
+            url: `/user/owner/${ownerId}/menu/category-element/${id}/toggle/`,
+            headers: {'X-CSRFToken': csrftoken},
+            data: { element_id: id }
+          }).done(res => {
+            const parent = $(`#element-${id}`);
+            parent.find('.toggle-label').text(res.active ? 'Active' : 'Inactive');
+            toastr.success(`Item ${res.active ? 'enabled' : 'disabled'}.`);
+          }).fail(() => toastr.error('Toggle failed.'));
+        });
+
+    // 3-dot toggle
+    $(document).on('click', '.three-dots', function(e) {
+      e.stopPropagation();
+      const dd = $(this).siblings('.dropdown');
+      $('.dropdown').not(dd).addClass('hidden');
+      dd.toggleClass('hidden');
+    });
+    $(document).click(() => $('.dropdown').addClass('hidden'));
+
+    // Prepare delete
+    $(document).on('click', '.delete-element', function() {
+      pendingDeleteId = $(this).data('element-id');
+      $('#delete-modal').removeClass('hidden');
+    });
+    $('#cancel-delete-btn').click(() => {
+      pendingDeleteId = null;
+      $('#delete-modal').addClass('hidden');
+    });
+    $('#confirm-delete-btn').click(() => {
+      const id = pendingDeleteId;
+      $.post({
+        url: `/user/owner/${ownerId}/menu/category-element/${id}/delete/`,
+        headers: {'X-CSRFToken': csrftoken},
+        data: { element_id: id }
+      }).done(() => {
+        $(`#element-${id}`).fadeOut(() => $(`#element-${id}`).remove());
+        $('#delete-modal').addClass('hidden');
+        toastr.success('Item deleted.');
+      }).fail(() => toastr.error('Delete failed.'));
+    });
+
+    // Edit element
+    $(document).on('click', '.edit-element', function() {
+      const id = $(this).data('element-id');
+      const card  = $(`#element-${id}`);
+      $('#new-element-name').val( card.find('p.font-semibold').text() );
+      $('#new-element-description').val( card.find('p.text-gray-600').text() );
+      $('#new-element-price').val(     card.find('p.text-green-600').text().replace(/[^0-9.]/g,'') );
+      $('#new-element-cost').val(      card.find('p.text-red-600').text().replace(/[^0-9.]/g,'') );
+      $('#element-modal')
+        .removeClass('hidden')
+        .find('#save-element-btn')
+          .data('element-id', id)
+          .text('Update');
+    });
+
+    // Create / Update element
+    $('#save-element-btn').off('click').on('click', function() {
+      const elementId  = $(this).data('element-id');
+      const categoryId = $(this).data('category-id');
+      const url = elementId
+        ? `/user/owner/${ownerId}/menu/category-element/${elementId}/update/`
+        : `/user/owner/${ownerId}/menu/category-element/add/`;
+      const data = new FormData();
+      if(elementId) data.append('element_id', elementId);
+      data.append('category_id', categoryId);
+      data.append('name', $('#new-element-name').val());
+      data.append('description', $('#new-element-description').val());
+      data.append('price', $('#new-element-price').val());
+      data.append('cost', $('#new-element-cost').val());
+      const img = $('#new-element-image')[0].files[0];
+      if(img) data.append('icon', img);
+
+      $.ajax({
+        url, type:'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data, processData:false, contentType:false
+      }).done(res => {
+        if(res.status==='success') {
+          toastr.success(elementId ? 'Item updated.' : 'Item added.');
+          $('#element-modal').addClass('hidden');
+          loadCategoryElements($('.category-btn.bg-blue-700').data('id'));
+        } else {
+          toastr.error(res.message||'Error.');
+        }
+      }).fail(() => toastr.error('Operation failed.'));
+    });
+
+    // Select first category on load
+    {% if menu and menu.get_Menu_Categories.all %}
+      const firstId = "{{ menu.get_Menu_Categories.first.id }}";
+      $(`[data-id='${firstId}']`).addClass('bg-blue-700');
+      loadCategoryElements(firstId);
+    {% endif %}
+  });
+</script>
 {% endblock %}

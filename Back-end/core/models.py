@@ -37,15 +37,22 @@ class Map(models.Model):
     class Meta:
         db_table = 'Map'
 
+    def __str__(self):
+        return f"Map for - {self.restaurant.name}"
+
 # Table
 class Table(models.Model):
     map = models.ForeignKey(Map, on_delete=models.CASCADE, related_name='get_Map_Tables')
+    name = models.CharField(max_length=100)
     position_x = models.IntegerField()
     position_y = models.IntegerField()
     type = models.IntegerField(choices=[(2, 'Double'), (4, 'Familiar'), (6, 'Familiar Numerous'), (8, 'Meeting')])
 
     class Meta:
         db_table = 'Table'
+
+    def __str__(self):
+        return f"Table Restaurant - {self.name}"
 
 # Bar
 class Bar(models.Model):
@@ -57,6 +64,9 @@ class Bar(models.Model):
 
     class Meta:
         db_table = 'Bar'
+    
+    def __str__(self):
+        return f"Bar for - {self.map.restaurant.name}"
 
 # Menu
 class Menu(models.Model):
@@ -120,14 +130,18 @@ class TableOrder(models.Model):
     class Meta:
         db_table = 'TableOrder'
 
+    def __str__(self):
+        return "Ordered " + self.category_element.name + " for - " + self.table.name
 # Order State
 class OrderState(models.Model):
     table_order = models.ForeignKey(TableOrder, on_delete=models.CASCADE, related_name='get_TableOrder_OrderStates')
     state = models.CharField(max_length=50, choices=[
-        ('Waiting confirmation', 'Waiting confirmation'),
         ('Waiting to be cooked', 'Waiting to be cooked'),
         ('Waiting to be delivered', 'Waiting to be delivered'),
     ])
 
     class Meta:
         db_table = 'OrderState'
+
+    def __str__(self):
+        return f"Tabele order - {self.table_order.table.name} - {self.state}"

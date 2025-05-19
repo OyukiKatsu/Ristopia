@@ -26,6 +26,13 @@ urlpatterns = [
     path('owner/<int:owner_id>/menu/create/', CreateMenuView.as_view(), name='create_menu'),
     path('owner/<int:owner_id>/menu/category/add/', CreateCategoryView.as_view(), name='create_category'),
     path('owner/<int:owner_id>/menu/category-element/add/', CreateCategoryElementView.as_view(), name='create_category_element'),
+
+
+    path("owner/<int:owner_id>/menu/category-element/<int:pk>/toggle/", ToggleCategoryElementActiveView.as_view(), name="toggle_category_element_active"),
+    path("owner/<int:owner_id>/menu/category-element/<int:pk>/update/", UpdateCategoryElementView.as_view(), name="update_category_element"),
+    path("owner/<int:owner_id>/menu/category-element/<int:pk>/delete/", DeleteCategoryElementView.as_view(), name="delete_category_element"),
+
+
     path('owner/<int:owner_id>/menu/category/<int:category_id>/elements/', CategoryElementsView.as_view(), name='get_category_elements'),
     path('owner/<int:owner_id>/workers/create/', CreateWorkerView.as_view(), name='create_worker'),
 ]

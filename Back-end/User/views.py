@@ -241,7 +241,7 @@ class OwnerView(TemplateView):
         }
         context['owner_id'] = owner_id
         return context
-
+    
 
 
 
@@ -501,12 +501,55 @@ class CategoryElementsView(LoginRequiredMixin, View):
                 'price': str(el.price),
                 'cost': str(el.cost),
                 'icon_url': el.icon.url if el.icon else '',
+                'active': el.active,
             })
         return JsonResponse({'elements': data})
     
 
 
+class ToggleCategoryElementActiveView(LoginRequiredMixin, View):
+    def post(self, request, owner_id, *args, **kwargs):
+        element_id = request.POST.get('element_id')
+        el = get_object_or_404(CategoryElement, id=element_id)
+        # ownership check
+        if el.category.menu.restaurant.owner.id != int(owner_id):
+            return JsonResponse({'status':'error','msg':'Forbidden'}, status=403)
+        el.active = not el.active
+        el.save()
+        return JsonResponse({'status':'success','element_id':el.id,'active':el.active})
 
+class UpdateCategoryElementView(LoginRequiredMixin, View):
+    def post(self, request, owner_id, *args, **kwargs):
+        element_id = request.POST.get('element_id')
+        el = get_object_or_404(CategoryElement, id=element_id)
+        if el.category.menu.restaurant.owner.id != int(owner_id):
+            return JsonResponse({'status':'error','msg':'Forbidden'}, status=403)
+        # pull updated fields
+        el.name        = request.POST.get('name', el.name)
+        el.description = request.POST.get('description', el.description)
+        el.price       = request.POST.get('price', el.price)
+        el.cost        = request.POST.get('cost', el.cost)
+        if request.FILES.get('icon'):
+            el.icon     = request.FILES['icon']
+        el.save()
+        return JsonResponse({
+            'status':'success',
+            'element_id': el.id,
+            'name': el.name,
+            'description': el.description,
+            'price': str(el.price),
+            'cost': str(el.cost),
+            'icon_url': el.icon.url if el.icon else ''
+        })
+
+class DeleteCategoryElementView(LoginRequiredMixin, View):
+    def post(self, request, owner_id, *args, **kwargs):
+        element_id = request.POST.get('element_id')
+        el = get_object_or_404(CategoryElement, id=element_id)
+        if el.category.menu.restaurant.owner.id != int(owner_id):
+            return JsonResponse({'status':'error','msg':'Forbidden'}, status=403)
+        el.delete()
+        return JsonResponse({'status':'success','element_id': element_id})
 
 
 
