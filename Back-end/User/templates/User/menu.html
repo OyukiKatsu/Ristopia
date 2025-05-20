@@ -48,7 +48,7 @@
                 {% else %}
                   bg-red-200   hover:bg-red-300
                 {% endif %}"
-              data-id="{{ category.id }}">
+              data-id="{{ category.id }}" first-category-identifire="{{ category.id }}{{ category.name }}">
               <span>{{ category.name }}</span>
 
                 <!-- vertical ellipsis -->
@@ -485,7 +485,10 @@ $('#confirm-edit-category-btn').click(() => {
     // Select first category on load
     {% if menu and menu.get_Menu_Categories.all %}
       const firstId = "{{ menu.get_Menu_Categories.first.id }}";
-      $(`[data-id='${firstId}']`).addClass('bg-blue-700');
+      const firstName = "{{ menu.get_Menu_Categories.first.name }}";
+      const firstCat = firstId + firstName;
+
+      $(`[first-category-identifire='${firstCat}']`).addClass('bg-blue-700');
       loadCategoryElements(firstId);
     {% endif %}
 
