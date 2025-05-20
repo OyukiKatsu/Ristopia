@@ -65,15 +65,15 @@ The application is divided into three main modules: **Client**, **Restaurant**, 
 - [x] Create for Category
 - [x] Create for element
 - [x] Create for worker
-
+- [x] Edit for category
+- [x] Delete for category
+- [x] Edit for element
+- [x] Delete for element
 
 
 ### 🛠️ Still to do
 
-- [ ] Edit for category
-- [ ] Delete for category
-- [ ] Edit for element
-- [ ] Delete for element
+
 - [ ] Edit for worker
 - [ ] Delete for worker
 - [ ] Chef view

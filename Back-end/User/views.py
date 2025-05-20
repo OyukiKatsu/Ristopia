@@ -451,7 +451,39 @@ class CreateCategoryView(LoginRequiredMixin, View):
             'category_name': category.name
         })
 
+class ToggleCategoryActiveView(LoginRequiredMixin, View):
+    def post(self, request, owner_id, pk):
+        category = get_object_or_404(Category, pk=pk, menu__restaurant__owner__id=owner_id)
+        if request.user != category.menu.restaurant.owner.user:
+            return JsonResponse({'error': "Permission denied."}, status=403)
+        
+        category.active = not category.active
+        category.save()
+        return JsonResponse({'status': 'success', 'active': category.active})
 
+class UpdateCategoryView(LoginRequiredMixin, View):
+    def post(self, request, owner_id, pk):
+        category = get_object_or_404(Category, pk=pk, menu__restaurant__owner__id=owner_id)
+        if request.user != category.menu.restaurant.owner.user:
+            return JsonResponse({'error': "Permission denied."}, status=403)
+
+        new_name = request.POST.get('name')
+        if not new_name:
+            return JsonResponse({'error': "Name is required."}, status=400)
+
+        category.name = new_name
+        category.save()
+        return JsonResponse({'status': 'success', 'name': category.name})
+
+class DeleteCategoryView(LoginRequiredMixin, View):
+    def post(self, request, owner_id, pk):
+        category = get_object_or_404(Category, pk=pk, menu__restaurant__owner__id=owner_id)
+        if request.user != category.menu.restaurant.owner.user:
+            return JsonResponse({'error': "Permission denied."}, status=403)
+
+        category.delete()
+        return JsonResponse({'status': 'success'})
+    
 class CreateCategoryElementView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         category_id = request.POST.get('category_id')
