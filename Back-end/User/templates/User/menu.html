@@ -288,11 +288,6 @@ $(document).on('click', function() {
   .addClass('hidden');
 });
 
-// Hide when clioked elsewhere
-$(document).on('click', function() {
-  $('.category-dropdown').addClass('hidden');
-});
-
 // Category selection when clicking anywhere but the 3 dots icon
 $(document).on('click', '.select-category', function(e) {
   if ($(e.target).hasClass('dropdown-trigger')) return;
@@ -340,6 +335,7 @@ let pendingEditCatId   = null;
 
 // OPEN Delete Category modal
 $(document).on('click', '.delete-category', function(e) {
+  document.dispatchEvent(new Event('click'));
   e.stopPropagation();
   pendingDeleteCatId = $(this).data('id');
   $('#delete-category-modal').removeClass('hidden');
@@ -375,6 +371,7 @@ $('#confirm-delete-category-btn').click(() => {
 
 // OPEN Edit Category modal
 $(document).on('click', '.edit-category', function(e) {
+  document.dispatchEvent(new Event('click'));
   e.stopPropagation();
   pendingEditCatId = $(this).data('id');
   const btn = $(`[data-id="${pendingEditCatId}"].category-btn`);
