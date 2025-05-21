@@ -69,16 +69,16 @@ The application is divided into three main modules: **Client**, **Restaurant**, 
 - [x] Delete for category
 - [x] Edit for element
 - [x] Delete for element
-
+- [x] Edit for worker
+- [x] Delete for worker
 
 ### 🛠️ Still to do
 
-
-- [ ] Edit for worker
-- [ ] Delete for worker
 - [ ] Chef view
 - [ ] Waiter view
+- [ ] Generate authentication codes for tables
 - [ ] Create restaurant map
 - [ ] Update restaurant map
+- [ ] Restaurant client view
 
 ---
