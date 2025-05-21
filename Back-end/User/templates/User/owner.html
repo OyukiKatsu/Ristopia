@@ -150,25 +150,4 @@
     loadChart('most_ordered', '1d', ownerId);
   });
   </script>
-  <script>
-    window.addEventListener("load", function() {
-      // Sidebar toggle
-      const menuToggle = document.getElementById("menu-toggle");
-      const sidebarMenu = document.getElementById("sidebar-menu");
-      const overlay = document.getElementById("menu-overlay");
-
-      // Open menu
-      menuToggle.addEventListener("click", function () {
-        sidebarMenu.classList.remove("-translate-x-full");
-        overlay.classList.remove("hidden");
-      });
-
-      // Close menu
-      overlay.addEventListener("click", function () {
-        sidebarMenu.classList.add("-translate-x-full");
-        overlay.classList.add("hidden");
-      });
-    });
-
-  </script>
 {% endblock %}

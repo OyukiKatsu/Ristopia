@@ -11,7 +11,7 @@
   </button>
   <div id="menu-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
 
-  <!-- Sidebar -->
+  <!-- Sidebar Overlay & Menu -->
   <div id="sidebar-menu"
        class="fixed top-0 left-0 h-full w-64 bg-[#fef3c7] shadow-lg transform -translate-x-full transition-transform duration-300 z-50">
     <div class="p-6">
@@ -160,24 +160,6 @@
     </div>
   </div>
 </div>
-
-
-<!-- Sidebar toggle script -->
-<script>
-  window.addEventListener("load", () => {
-    const toggle = document.getElementById("menu-toggle");
-    const sidebar = document.getElementById("sidebar-menu");
-    const overlay = document.getElementById("menu-overlay");
-    toggle.addEventListener("click", () => {
-      sidebar.classList.remove("-translate-x-full");
-      overlay.classList.remove("hidden");
-    });
-    overlay.addEventListener("click", () => {
-      sidebar.classList.add("-translate-x-full");
-      overlay.classList.add("hidden");
-    });
-  });
-</script>
 
 <script>
   $(document).ready(function() {

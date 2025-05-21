@@ -590,6 +590,7 @@ class CreateWorkerView(View):
             return JsonResponse({
                 'status': 'success',
                 'username': user.username,
+                'worker_id': worker.id,
                 'email': worker_profile.email,
                 'type': worker_type,
                 'login_code': worker.login_code,
@@ -602,7 +603,7 @@ class CreateWorkerView(View):
 class ToggleWorkerActiveView(LoginRequiredMixin, View):
     def post(self, request, worker_id, *args, **kwargs):
         worker = get_object_or_404(Worker, id=worker_id)
-        if worker not in request.user.get_User_Profile.get_User_Workers.all():
+        if worker not in request.user.get_User_Profile.get_Profile_Restaurantes.first().get_Restaurante_Workers.all():
             return JsonResponse({'status':'error','msg':'Forbidden'}, status=403)
         worker.active = not worker.active
         worker.save()
@@ -610,7 +611,12 @@ class ToggleWorkerActiveView(LoginRequiredMixin, View):
 class DeleteWorkerView(LoginRequiredMixin, View):
     def post(self, request, worker_id, *args, **kwargs):
         worker = get_object_or_404(Worker, id=worker_id)
-        if worker not in request.user.get_User_Profile.get_User_Workers.all():
+        if worker not in request.user.get_User_Profile.get_Profile_Restaurantes.first().get_Restaurante_Workers.all():
             return JsonResponse({'status':'error','msg':'Forbidden'}, status=403)
+        
+        profile = worker.user
+        user = profile.user
         worker.delete()
+        profile.delete()
+        user.delete()
         return JsonResponse({'status':'success'})

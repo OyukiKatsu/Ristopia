@@ -23,8 +23,7 @@
       </ul>
     </div>
   </div>
-
-  <!-- Main Content -->
+  
   <div class="bg-yellow-50 p-8 rounded-xl shadow-xl w-full max-w-3xl mt-8">
     <h2 class="text-2xl font-bold mb-4">{{ restaurant.name }}</h2>
     <div class="flex justify-center">
@@ -33,16 +32,33 @@
 
     <div id="worker-list" class="space-y-4">
       {% for worker in workers %}
-      <div class="bg-white shadow rounded-lg p-4 flex space-x-4 items-center">
-        <img src="{{ worker.user.profile_picture.url }}" alt="Profile" class="w-20 h-20 object-cover rounded">
-        <div>
-          <p class="font-semibold text-lg">{{ worker.user.user.username }}</p>
-          <p class="text-sm text-gray-600">{{ worker.user.email }}</p>
-          <p class="text-sm text-blue-600">Code: {{ worker.login_code }}</p>
-          <p class="text-sm">Role: {{ worker.type }}</p>
-          <p class="text-sm {% if worker.active %}text-green-600{% else %}text-red-500{% endif %}">
-            {{ worker.active|yesno:"Active,Inactive" }}
-          </p>
+      <div id="worker-{{ worker.id }}" class="bg-white shadow rounded-lg p-4 flex justify-between items-center space-x-4">
+        <div class="flex items-center space-x-4">
+          <img src="{{ worker.user.profile_picture.url }}" class="w-20 h-20 object-cover rounded">
+          <div>
+            <p class="font-semibold text-lg">{{ worker.user.user.username }}</p>
+            <p class="text-sm text-gray-600">{{ worker.user.email }}</p>
+            <p class="text-sm text-blue-600">Code: {{ worker.login_code }}</p>
+            <p class="text-sm">Role: {{ worker.type }}</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-6">
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <span class="toggle-label text-sm {{ worker.active|yesno:'text-green-600,text-red-500' }}">
+              {{ worker.active|yesno:"Active,Inactive" }}
+            </span>
+            <div class="relative">
+              <input type="checkbox" class="sr-only peer toggle-worker" data-worker-id="{{ worker.id }}" {% if worker.active %}checked{% endif %}>
+              <div class="w-12 h-6 bg-gray-300 rounded-full peer-checked:bg-green-400 transition-colors"></div>
+              <div class="absolute top-0.5 left-1 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></div>
+            </div>
+          </label>
+          <button class="delete-worker text-red-500 hover:text-red-700" data-worker-id="{{ worker.id }}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3" />
+            </svg>
+          </button>
         </div>
       </div>
       {% empty %}
@@ -70,94 +86,179 @@
   </div>
 </div>
 
-<!-- JavaScript -->
+<!-- Delete Confirmation Modal -->
+<div id="delete-worker-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded shadow-lg w-80 text-center">
+    <p class="mb-4">Are you sure you want to delete this worker?</p>
+    <div class="flex justify-center space-x-4">
+      <button id="cancel-delete-btn" class="px-4 py-2 rounded border">Cancel</button>
+      <button id="confirm-delete-btn" class="px-4 py-2 rounded bg-red-500 text-white disabled:opacity-50" disabled>3</button>
+    </div>
+  </div>
+</div>
+
+
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const modal = document.getElementById("worker-modal");
-    const openBtn = document.getElementById("add-worker-btn");
-    const closeBtn = document.getElementById("worker-modal-close");
-    const submitBtn = document.getElementById("create-worker-submit");
+$(function(){
+  const ownerId = '{{ profile.id }}';
+  const csrf    = '{{ csrf_token }}';
+  let deleteId, countdownTimer, count;
 
-    openBtn.addEventListener("click", () => modal.classList.remove("hidden"));
-    closeBtn.addEventListener("click", () => modal.classList.add("hidden"));
+  //Modals for creating workers
+  $('#add-worker-btn').on('click',      ()=> $('#worker-modal').removeClass('hidden'));
+  $('#worker-modal-close').on('click', ()=> $('#worker-modal').addClass('hidden'));
+  
+  // Create workers
+  $('#create-worker-submit').on('click', function(){
+    const username = $('#worker-username').val().trim();
+    const email    = $('#worker-email').val().trim();
+    const type     = $('#worker-type').val();
+    const picFile  = $('#worker-picture')[0].files[0];
 
-    submitBtn.addEventListener("click", async () => {
-      const username = document.getElementById("worker-username").value;
-      const email = document.getElementById("worker-email").value;
-      const picture = document.getElementById("worker-picture").files[0];
-      const type = document.getElementById("worker-type").value;
+    if (!username || !email) {
+      return toastr.error('Username & email are required.');
+    }
 
-      const formData = new FormData();
-      formData.append("username", username);
-      formData.append("email", email);
-      formData.append("type", type);
-      if (picture) formData.append("picture", picture);
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('email', email);
+    formData.append('type', type);
+    if (picFile) formData.append('picture', picFile);
 
-      try {
-        const response = await fetch("{% url 'create_worker' owner_id=profile.id %}", {
-          method: "POST",
-          headers: {
-            "X-CSRFToken": "{{ csrf_token }}",
-          },
-          body: formData
-        });
-
-        const data = await response.json();
-        if (data.status === "success") {
-          // Remove "no workers" message if present
-          const noWorkersMsg = document.getElementById("no-workers-msg");
-          if (noWorkersMsg) noWorkersMsg.remove();
-
-          // Create new worker card
-          const workerHtml = `
-            <div class="bg-white shadow rounded-lg p-4 flex space-x-4 items-center">
-              <img src="${data.profile_picture_url}" alt="Profile" class="w-20 h-20 object-cover rounded">
-              <div>
-                <p class="font-semibold text-lg">${data.username}</p>
-                <p class="text-sm text-gray-600">${data.email}</p>
-                <p class="text-sm text-blue-600">Code: ${data.login_code}</p>
-                <p class="text-sm">Role: ${data.type}</p>
-                <p class="text-sm text-green-600">Active</p>
-              </div>
+    $.ajax({
+      url: `/user/owner/${ownerId}/workers/create/`,
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrf },
+      data: formData,
+      processData: false,
+      contentType: false,
+    })
+    .done(function(data){
+      if (data.status === 'success') {
+        $('#no-workers-msg').remove();
+        const card = `
+        <div id="worker-${data.worker_id}" class="bg-white shadow rounded-lg p-4 flex justify-between items-center space-x-4">
+          <div class="flex items-center space-x-4">
+            <img src="${data.profile_picture_url}" class="w-20 h-20 object-cover rounded">
+            <div>
+              <p class="font-semibold text-lg">${data.username}</p>
+              <p class="text-sm text-gray-600">${data.email}</p>
+              <p class="text-sm text-blue-600">Code: ${data.login_code}</p>
+              <p class="text-sm">Role: ${data.type}</p>
             </div>
-          `;
-          document.getElementById("worker-list").insertAdjacentHTML("beforeend", workerHtml);
+          </div>
+          <div class="flex items-center space-x-6">
+            <!-- Toggle Switch -->
+            <label class="flex items-center space-x-2 cursor-pointer">
+              <span class="toggle-label text-green-600">Active</span>
+              <div class="relative">
+                <input type="checkbox"
+                       class="sr-only peer toggle-worker"
+                       data-worker-id="${data.worker_id}"
+                       checked>
+                <div class="w-12 h-6 bg-gray-300 rounded-full peer-checked:bg-green-400 transition-colors"></div>
+                <div class="absolute top-0.5 left-1 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></div>
+              </div>
+            </label>
+            <!-- Delete Button -->
+            <button class="delete-worker text-red-500 hover:text-red-700" data-worker-id="${data.worker_id}">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none"
+                   viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0
+                         01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1
+                         1 0 011-1h6a1 1 0 011 1v3" />
+              </svg>
+            </button>
+          </div>
+        </div>`;
 
-          modal.classList.add("hidden");
-          document.getElementById("worker-username").value = "";
-          document.getElementById("worker-email").value = "";
-          document.getElementById("worker-picture").value = "";
-          document.getElementById("worker-type").value = "Waiter";
-
-          toastr.success("Worker " + data.username + " created successfully.", "Success");
-        } else {
-          toastr.error(data.message || "Error creating worker.");
-        }
-      } catch (err) {
-        toastr.error("Something went wrong. Try again.");
+        // append new worker card and reset modal inputs
+        $('#worker-list').append(card);
+        $('#worker-modal').addClass('hidden');
+        $('#worker-username, #worker-email, #worker-picture').val('');
+        $('#worker-type').val('Waiter');
+        toastr.success(`Worker ${data.username} created.`, 'Success');
+      } else {
+        toastr.error(data.message || 'Error creating worker.');
       }
+    })
+    .fail(function(){
+      toastr.error('Server error. Try again.');
     });
   });
-</script>
-  <script>
-    window.addEventListener("load", function() {
-      // Sidebar toggle
-      const menuToggle = document.getElementById("menu-toggle");
-      const sidebarMenu = document.getElementById("sidebar-menu");
-      const overlay = document.getElementById("menu-overlay");
 
-      // Open menu
-      menuToggle.addEventListener("click", function () {
-        sidebarMenu.classList.remove("-translate-x-full");
-        overlay.classList.remove("hidden");
-      });
+  // TOGGLE ACTIVE/INACTIVE WORKER
+  $(document).on('change', '.toggle-worker', function(){
+    const $chk = $(this);
+    const id   = $chk.data('worker-id');
 
-      // Close menu
-      overlay.addEventListener("click", function () {
-        sidebarMenu.classList.add("-translate-x-full");
-        overlay.classList.add("hidden");
-      });
+    $.ajax({
+      url: `/user/owner/${ownerId}/workers/${id}/toggle/`,
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrf },
+    })
+    .done(function(res){
+      const active = $chk.is(':checked');
+      $chk.closest('label')
+          .find('.toggle-label')
+          .text(active ? 'Active' : 'Inactive')
+          .toggleClass('text-green-600 text-red-500');
+      toastr.success(res.message || `Worker ${active ? 'enabled' : 'disabled'}.`);
+    })
+    .fail(function(){
+      toastr.error('Toggle failed.');
+      $chk.prop('checked', !$chk.prop('checked'));
     });
+  });
 
-  </script>
+  // DELETE WORKER
+  $(document).on('click', '.delete-worker', function(){
+    deleteId = $(this).data('worker-id');
+    count    = 3;
+    $('#confirm-delete-btn').text(count).prop('disabled', true);
+    $('#delete-worker-modal').removeClass('hidden');
+
+    clearInterval(countdownTimer);
+    countdownTimer = setInterval(function(){
+      if (--count > 0) {
+        $('#confirm-delete-btn').text(count);
+      } else {
+        clearInterval(countdownTimer);
+        $('#confirm-delete-btn').text('Confirm').prop('disabled', false);
+      }
+    }, 1000);
+  });
+
+  $('#cancel-delete-btn').on('click', function(){
+    clearInterval(countdownTimer);
+    $('#delete-worker-modal').addClass('hidden');
+  });
+
+  $('#confirm-delete-btn').on('click', function(){
+    $.ajax({
+      url: `/user/owner/${ownerId}/workers/${deleteId}/delete/`,
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrf },
+    })
+    .done(function(res){
+      $(`#worker-${deleteId}`).fadeOut(function(){
+        $(this).remove();
+        if (!$('#worker-list').children().length) {
+          $('#worker-list').html('<p class="text-gray-500" id="no-workers-msg">No workers yet.</p>');
+        }
+      });
+      toastr.success(res.message || 'Worker deleted.');
+    })
+    .fail(function(){
+      toastr.error('Delete failed.');
+    })
+    .always(function(){
+      clearInterval(countdownTimer);
+      $('#delete-worker-modal').addClass('hidden');
+    });
+  });
+
+});
+</script>
 {% endblock %}
