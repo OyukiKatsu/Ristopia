@@ -415,28 +415,28 @@ $('#confirm-edit-category-btn').click(() => {
     function loadCategoryElements(catId) {
       $.get(`/user/owner/${ownerId}/menu/category/${catId}/elements/`)
        .done(response => {
-         const cards = response.elements.map(el => `
-           <div id="element-${el.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4">
-             ${el.icon_url
-               ? `<img src="${el.icon_url}" class="w-24 h-24 object-cover rounded">`
+         const cards = response.elements.map(element => `
+           <div id="element-${element.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4">
+             ${element.icon_url
+               ? `<img src="${element.icon_url}" class="w-24 h-24 object-cover rounded">`
                : `<div class="w-24 h-24 bg-gray-100 rounded flex items-center justify-center">No Image</div>`
              }
              <div class="flex-1">
-               <p class="font-semibold text-lg">${el.name}</p>
-               <p class="text-sm text-gray-600">${el.description}</p>
-               <p class="text-sm text-green-600">Price: €${el.price}</p>
-               <p class="text-sm text-red-600">Cost: €${el.cost}</p>
+               <p class="font-semibold text-lg">${element.name}</p>
+               <p class="text-sm text-gray-600">${element.description}</p>
+               <p class="text-sm text-green-600">Price: €${element.price}</p>
+               <p class="text-sm text-red-600">Cost: €${element.cost}</p>
              </div>
 
              <!-- Tailwind peer-based Toggle switch -->
              <label class="flex items-center space-x-2 cursor-pointer">
-              <span class="text-sm toggle-label">${el.active ? 'Active' : 'Inactive'}</span>
+              <span class="text-sm toggle-label">${element.active ? 'Active' : 'Inactive'}</span>
               <div class="relative">
                 <input
                   type="checkbox"
                   class="sr-only peer toggle-active"
-                  data-element-id="${el.id}"
-                  ${el.active ? 'checked' : ''}
+                  data-element-id="${element.id}"
+                  ${element.active ? 'checked' : ''}
                 />
                 <!-- track: slightly taller -->
                 <div class="w-12 h-6 bg-gray-300 rounded-full peer-checked:bg-green-400 transition-colors"></div>
@@ -454,8 +454,8 @@ $('#confirm-edit-category-btn').click(() => {
                  </svg>
                </button>
                <div class="dropdown absolute right-0 mt-2 w-32 bg-white border rounded shadow-lg hidden z-10">
-                 <button class="w-full text-left px-4 py-2 hover:bg-gray-100 edit-element" data-element-id="${el.id}">Edit</button>
-                 <button class="w-full text-left px-4 py-2 hover:bg-gray-100 delete-element" data-element-id="${el.id}">Delete</button>
+                 <button class="w-full text-left px-4 py-2 hover:bg-gray-100 edit-element" data-element-id="${element.id}">Edit</button>
+                 <button class="w-full text-left px-4 py-2 hover:bg-gray-100 delete-element" data-element-id="${element.id}">Delete</button>
                </div>
              </div>
            </div>

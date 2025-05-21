@@ -365,7 +365,8 @@ class DashboardChartData(View):
         chart_type = request.GET.get('type')
         time_range = request.GET.get('range')
         owner_id = request.GET.get('owner_id')
-
+        if request.user.get_User_Profile.id != int(owner_id):
+            return JsonResponse({'error': "Permission denied."}, status=403)
         profile = Profile.objects.get(id=owner_id)
         now_time = now()
         data = {}
@@ -425,7 +426,9 @@ class DashboardChartData(View):
 
 
 class CreateMenuView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
+    def post(self, request, owner_id,*args, **kwargs):
+        if request.user.get_User_Profile.id != int(owner_id):
+            return JsonResponse({'error': "Permission denied."}, status=403)
         profile = request.user.get_User_Profile
         restaurant = profile.get_Profile_Restaurantes.first()
         if not Menu.objects.filter(restaurant=restaurant).exists():
@@ -436,7 +439,9 @@ class CreateMenuView(LoginRequiredMixin, View):
 
 
 class CreateCategoryView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
+    def post(self, request, owner_id, *args, **kwargs):
+        if request.user.get_User_Profile.id != int(owner_id):
+            return JsonResponse({'error': "Permission denied."}, status=403)
         menu_id = request.POST.get('menu_id')
         name = request.POST.get('name')
 
@@ -454,7 +459,7 @@ class CreateCategoryView(LoginRequiredMixin, View):
 class ToggleCategoryActiveView(LoginRequiredMixin, View):
     def post(self, request, owner_id, pk):
         category = get_object_or_404(Category, pk=pk, menu__restaurant__owner__id=owner_id)
-        if request.user != category.menu.restaurant.owner.user:
+        if request.user.get_User_Profile.id != int(owner_id):
             return JsonResponse({'error': "Permission denied."}, status=403)
         
         category.active = not category.active
@@ -464,7 +469,7 @@ class ToggleCategoryActiveView(LoginRequiredMixin, View):
 class UpdateCategoryView(LoginRequiredMixin, View):
     def post(self, request, owner_id, pk):
         category = get_object_or_404(Category, pk=pk, menu__restaurant__owner__id=owner_id)
-        if request.user != category.menu.restaurant.owner.user:
+        if request.user.get_User_Profile.id != int(owner_id):
             return JsonResponse({'error': "Permission denied."}, status=403)
 
         new_name = request.POST.get('name')
@@ -478,14 +483,15 @@ class UpdateCategoryView(LoginRequiredMixin, View):
 class DeleteCategoryView(LoginRequiredMixin, View):
     def post(self, request, owner_id, pk):
         category = get_object_or_404(Category, pk=pk, menu__restaurant__owner__id=owner_id)
-        if request.user != category.menu.restaurant.owner.user:
+        if request.user.get_User_Profile.id != int(owner_id):
             return JsonResponse({'error': "Permission denied."}, status=403)
-
         category.delete()
         return JsonResponse({'status': 'success'})
     
 class CreateCategoryElementView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
+    def post(self, request, owner_id, *args, **kwargs):
+        if request.user.get_User_Profile.id != int(owner_id):
+            return JsonResponse({'error': "Permission denied."}, status=403)
         category_id = request.POST.get('category_id')
         name = request.POST.get('name')
         description = request.POST.get('description')
@@ -525,15 +531,15 @@ class CategoryElementsView(LoginRequiredMixin, View):
     def get(self, request, owner_id, category_id):
         elements = CategoryElement.objects.filter(category_id=category_id)
         data = []
-        for el in elements:
+        for element in elements:
             data.append({
-                'id': el.id,
-                'name': el.name,
-                'description': el.description,
-                'price': str(el.price),
-                'cost': str(el.cost),
-                'icon_url': el.icon.url if el.icon else '',
-                'active': el.active,
+                'id': element.id,
+                'name': element.name,
+                'description': element.description,
+                'price': str(element.price),
+                'cost': str(element.cost),
+                'icon_url': element.icon.url if element.icon else '',
+                'active': element.active,
             })
         return JsonResponse({'elements': data})
     
@@ -542,45 +548,45 @@ class CategoryElementsView(LoginRequiredMixin, View):
 class ToggleCategoryElementActiveView(LoginRequiredMixin, View):
     def post(self, request, owner_id, *args, **kwargs):
         element_id = request.POST.get('element_id')
-        el = get_object_or_404(CategoryElement, id=element_id)
+        element = get_object_or_404(CategoryElement, id=element_id)
         # ownership check
-        if el.category.menu.restaurant.owner.id != int(owner_id):
+        if element.category.menu.restaurant.owner.id != int(owner_id):
             return JsonResponse({'status':'error','msg':'Forbidden'}, status=403)
-        el.active = not el.active
-        el.save()
-        return JsonResponse({'status':'success','element_id':el.id,'active':el.active})
+        element.active = not element.active
+        element.save()
+        return JsonResponse({'status':'success','element_id':element.id,'active':element.active})
 
 class UpdateCategoryElementView(LoginRequiredMixin, View):
     def post(self, request, owner_id, *args, **kwargs):
         element_id = request.POST.get('element_id')
-        el = get_object_or_404(CategoryElement, id=element_id)
-        if el.category.menu.restaurant.owner.id != int(owner_id):
+        element = get_object_or_404(CategoryElement, id=element_id)
+        if element.category.menu.restaurant.owner.id != int(owner_id):
             return JsonResponse({'status':'error','msg':'Forbidden'}, status=403)
         # pull updated fields
-        el.name        = request.POST.get('name', el.name)
-        el.description = request.POST.get('description', el.description)
-        el.price       = request.POST.get('price', el.price)
-        el.cost        = request.POST.get('cost', el.cost)
+        element.name        = request.POST.get('name', element.name)
+        element.description = request.POST.get('description', element.description)
+        element.price       = request.POST.get('price', element.price)
+        element.cost        = request.POST.get('cost', element.cost)
         if request.FILES.get('icon'):
-            el.icon     = request.FILES['icon']
-        el.save()
+            element.icon     = request.FILES['icon']
+        element.save()
         return JsonResponse({
             'status':'success',
-            'element_id': el.id,
-            'name': el.name,
-            'description': el.description,
-            'price': str(el.price),
-            'cost': str(el.cost),
-            'icon_url': el.icon.url if el.icon else ''
+            'element_id': element.id,
+            'name': element.name,
+            'description': element.description,
+            'price': str(element.price),
+            'cost': str(element.cost),
+            'icon_url': element.icon.url if element.icon else ''
         })
 
 class DeleteCategoryElementView(LoginRequiredMixin, View):
     def post(self, request, owner_id, *args, **kwargs):
         element_id = request.POST.get('element_id')
-        el = get_object_or_404(CategoryElement, id=element_id)
-        if el.category.menu.restaurant.owner.id != int(owner_id):
+        element = get_object_or_404(CategoryElement, id=element_id)
+        if element.category.menu.restaurant.owner.id != int(owner_id):
             return JsonResponse({'status':'error','msg':'Forbidden'}, status=403)
-        el.delete()
+        element.delete()
         return JsonResponse({'status':'success','element_id': element_id})
 
 
@@ -641,3 +647,21 @@ class CreateWorkerView(View):
 
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
+
+class ToggleWorkerActiveView(LoginRequiredMixin, View):
+    def post(self, request, worker_id, *args, **kwargs):
+        worker = get_object_or_404(Worker, id=worker_id)
+        if worker not in request.user.get_User_Profile.get_User_Workers.all():
+            return JsonResponse({'status':'error','msg':'Forbidden'}, status=403)
+        worker.active = not worker.active
+        worker.save()
+        return JsonResponse({'status':'success','message':'Worker disabled' if not worker.active else 'Worker enabled'})
+
+
+class DeleteWorkerView(LoginRequiredMixin, View):
+    def post(self, request, worker_id, *args, **kwargs):
+        worker = get_object_or_404(Worker, id=worker_id)
+        if worker not in request.user.get_User_Profile.get_User_Workers.all():
+            return JsonResponse({'status':'error','msg':'Forbidden'}, status=403)
+        worker.delete()
+        return JsonResponse({'status':'success'})
