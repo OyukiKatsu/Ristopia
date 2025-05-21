@@ -9,7 +9,6 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Sum
 from django.utils.timezone import now, timedelta
-from calendar import day_name
 from datetime import datetime, timedelta
 from django.db.models.functions import TruncHour, TruncDay, TruncDate
 from django.http import JsonResponse
@@ -24,6 +23,14 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode
 
+
+
+# ========================================================================== #
+# ====== Dysplay Pages ====== #
+# ========================================================================== #
+
+
+# ====== User Control ====== #
 class RegisterView(TemplateView):
     template_name = 'User/register.html'
 
@@ -74,8 +81,6 @@ class RegisterView(TemplateView):
             messages.error(request, f'Error|An error occurred: {str(e)}')
             return render(request, self.template_name)
         return redirect('custom_login')
-
-
 class LoginView(TemplateView):
     template_name = 'User/login.html'
 
@@ -122,36 +127,11 @@ class LoginView(TemplateView):
                 messages.error(request, "Error|Invalid or inactive login code.")
 
         return render(request, self.template_name)
-
 class ResetPasswordView(TemplateView):
     template_name = 'User/reset-password.html'
 
     def get(self, request, *args, **kwargs):
-        return render(request, self.template_name)
-
-class ResetPasswordEmailView(View):
-    def post(self, request, *args, **kwargs):
-        username = request.POST.get('username')
-        user = User.objects.filter(username=username).first()
-        if user:
-
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = default_token_generator.make_token(user)
-
-            reset_url = request.build_absolute_uri(
-                reverse('custom_password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
-            )
-
-            if user:                        
-                html_content = render_to_string("core/emails/email_password_reset.html", {
-                    "title": "Reset Your Password",
-                    "message": "Click the button below to reset your password. If you didn’t request this, you can safely ignore this email.",
-                    "reset_url": reset_url
-                })
-                send_mail("Reset Your Password", "", "ristopia123@gmail.com", [user.get_User_Profile.email], html_message=html_content)
-        return HttpResponse(status=200)
-
-        
+        return render(request, self.template_name)     
 class ResetPasswordTokenView(TemplateView):
     template_name = 'User/reset-password-confirm.html'
 
@@ -192,9 +172,7 @@ class ResetPasswordTokenView(TemplateView):
             messages.error(request, 'Invalid or expired link.')
             return redirect(request.path)
 
-
-
-
+# ====== Owner Dashboards ====== #
 class OwnerView(TemplateView):
     template_name = 'User/owner.html'
 
@@ -241,11 +219,8 @@ class OwnerView(TemplateView):
         }
         context['owner_id'] = owner_id
         return context
-    
 
-
-
-    
+# === Menu ==== #  
 class MenuView(TemplateView):
     template_name = 'User/menu.html'
     def get_context_data(self, **kwargs):
@@ -270,7 +245,7 @@ class MenuView(TemplateView):
     
         return render(request, self.template_name, self.get_context_data(**kwargs))
 
-
+# === Worker ==== #
 class WorkersView(TemplateView):
     template_name = 'User/workers.html'
             
@@ -294,11 +269,23 @@ class WorkersView(TemplateView):
 
         return render(request, self.template_name, context)
 
+# ====== Worker Dashboards ====== #
+class WaiterView(TemplateView):
+    template_name = 'User/waiter.html'
 
+    def get(self, request, waiter_id):
+        user = request.user
 
+        try:
+            worker = Worker.objects.get(id=waiter_id, user__user=user, type='Waiter')
+        except Worker.DoesNotExist:
+            raise PermissionDenied("403 Forbidden: You don't have access to this waiter dashboard.")
 
-
-
+        context = {
+            'username': user.username,
+            'role': 'Waiter'
+        }
+        return render(request, self.template_name, context)
 class ChefView(TemplateView):
     template_name = 'User/chef.html'
 
@@ -317,49 +304,36 @@ class ChefView(TemplateView):
         return render(request, self.template_name, context)
 
 
-class WaiterView(TemplateView):
-    template_name = 'User/waiter.html'
 
-    def get(self, request, waiter_id):
-        user = request.user
-
-        try:
-            worker = Worker.objects.get(id=waiter_id, user__user=user, type='Waiter')
-        except Worker.DoesNotExist:
-            raise PermissionDenied("403 Forbidden: You don't have access to this waiter dashboard.")
-
-        context = {
-            'username': user.username,
-            'role': 'Waiter'
-        }
-        return render(request, self.template_name, context)
+# ========================================================================== #
+# ========== "APIs" =========== #
+# ========================================================================== #
 
 
+# ====== User Control ====== #
+class ResetPasswordEmailView(View):
+    def post(self, request, *args, **kwargs):
+        username = request.POST.get('username')
+        user = User.objects.filter(username=username).first()
+        if user:
 
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
 
+            reset_url = request.build_absolute_uri(
+                reverse('custom_password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+            )
 
+            if user:                        
+                html_content = render_to_string("core/emails/email_password_reset.html", {
+                    "title": "Reset Your Password",
+                    "message": "Click the button below to reset your password. If you didn’t request this, you can safely ignore this email.",
+                    "reset_url": reset_url
+                })
+                send_mail("Reset Your Password", "", "ristopia123@gmail.com", [user.get_User_Profile.email], html_message=html_content)
+        return HttpResponse(status=200)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ========== API CALLS ========== #
+# ====== Owner Dashboards ====== #
 class DashboardChartData(View):
     def get(self, request, *args, **kwargs):
         chart_type = request.GET.get('type')
@@ -411,20 +385,7 @@ class DashboardChartData(View):
 
         return JsonResponse(data)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# === Menu ==== #
 class CreateMenuView(LoginRequiredMixin, View):
     def post(self, request, owner_id,*args, **kwargs):
         if request.user.get_User_Profile.id != int(owner_id):
@@ -437,7 +398,7 @@ class CreateMenuView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'success'})
         return JsonResponse({'status': 'exists'})
 
-
+# === Category ==== #
 class CreateCategoryView(LoginRequiredMixin, View):
     def post(self, request, owner_id, *args, **kwargs):
         if request.user.get_User_Profile.id != int(owner_id):
@@ -455,7 +416,6 @@ class CreateCategoryView(LoginRequiredMixin, View):
             'category_id': category.id,
             'category_name': category.name
         })
-
 class ToggleCategoryActiveView(LoginRequiredMixin, View):
     def post(self, request, owner_id, pk):
         category = get_object_or_404(Category, pk=pk, menu__restaurant__owner__id=owner_id)
@@ -465,7 +425,6 @@ class ToggleCategoryActiveView(LoginRequiredMixin, View):
         category.active = not category.active
         category.save()
         return JsonResponse({'status': 'success', 'active': category.active})
-
 class UpdateCategoryView(LoginRequiredMixin, View):
     def post(self, request, owner_id, pk):
         category = get_object_or_404(Category, pk=pk, menu__restaurant__owner__id=owner_id)
@@ -479,7 +438,6 @@ class UpdateCategoryView(LoginRequiredMixin, View):
         category.name = new_name
         category.save()
         return JsonResponse({'status': 'success', 'name': category.name})
-
 class DeleteCategoryView(LoginRequiredMixin, View):
     def post(self, request, owner_id, pk):
         category = get_object_or_404(Category, pk=pk, menu__restaurant__owner__id=owner_id)
@@ -487,7 +445,23 @@ class DeleteCategoryView(LoginRequiredMixin, View):
             return JsonResponse({'error': "Permission denied."}, status=403)
         category.delete()
         return JsonResponse({'status': 'success'})
-    
+class CategoryElementsView(LoginRequiredMixin, View):
+    def get(self, request, owner_id, category_id):
+        elements = CategoryElement.objects.filter(category_id=category_id)
+        data = []
+        for element in elements:
+            data.append({
+                'id': element.id,
+                'name': element.name,
+                'description': element.description,
+                'price': str(element.price),
+                'cost': str(element.cost),
+                'icon_url': element.icon.url if element.icon else '',
+                'active': element.active,
+            })
+        return JsonResponse({'elements': data})
+
+# === Category Element ==== #
 class CreateCategoryElementView(LoginRequiredMixin, View):
     def post(self, request, owner_id, *args, **kwargs):
         if request.user.get_User_Profile.id != int(owner_id):
@@ -525,26 +499,7 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
             'element_id': element.id,
             'element_name': element.name,
             'icon_url': element.icon.url if element.icon else ''
-        })
-    
-class CategoryElementsView(LoginRequiredMixin, View):
-    def get(self, request, owner_id, category_id):
-        elements = CategoryElement.objects.filter(category_id=category_id)
-        data = []
-        for element in elements:
-            data.append({
-                'id': element.id,
-                'name': element.name,
-                'description': element.description,
-                'price': str(element.price),
-                'cost': str(element.cost),
-                'icon_url': element.icon.url if element.icon else '',
-                'active': element.active,
-            })
-        return JsonResponse({'elements': data})
-    
-
-
+        }) 
 class ToggleCategoryElementActiveView(LoginRequiredMixin, View):
     def post(self, request, owner_id, *args, **kwargs):
         element_id = request.POST.get('element_id')
@@ -555,7 +510,6 @@ class ToggleCategoryElementActiveView(LoginRequiredMixin, View):
         element.active = not element.active
         element.save()
         return JsonResponse({'status':'success','element_id':element.id,'active':element.active})
-
 class UpdateCategoryElementView(LoginRequiredMixin, View):
     def post(self, request, owner_id, *args, **kwargs):
         element_id = request.POST.get('element_id')
@@ -579,7 +533,6 @@ class UpdateCategoryElementView(LoginRequiredMixin, View):
             'cost': str(element.cost),
             'icon_url': element.icon.url if element.icon else ''
         })
-
 class DeleteCategoryElementView(LoginRequiredMixin, View):
     def post(self, request, owner_id, *args, **kwargs):
         element_id = request.POST.get('element_id')
@@ -588,9 +541,8 @@ class DeleteCategoryElementView(LoginRequiredMixin, View):
             return JsonResponse({'status':'error','msg':'Forbidden'}, status=403)
         element.delete()
         return JsonResponse({'status':'success','element_id': element_id})
-
-
-
+    
+# === Worker ==== #
 class CreateWorkerView(View):
 
     def generate_unique_login_code(self):
@@ -647,7 +599,6 @@ class CreateWorkerView(View):
 
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
-
 class ToggleWorkerActiveView(LoginRequiredMixin, View):
     def post(self, request, worker_id, *args, **kwargs):
         worker = get_object_or_404(Worker, id=worker_id)
@@ -656,8 +607,6 @@ class ToggleWorkerActiveView(LoginRequiredMixin, View):
         worker.active = not worker.active
         worker.save()
         return JsonResponse({'status':'success','message':'Worker disabled' if not worker.active else 'Worker enabled'})
-
-
 class DeleteWorkerView(LoginRequiredMixin, View):
     def post(self, request, worker_id, *args, **kwargs):
         worker = get_object_or_404(Worker, id=worker_id)

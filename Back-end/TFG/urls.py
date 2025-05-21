@@ -25,10 +25,10 @@ handler404 = error_404
 
 urlpatterns = [
     path('', include('core.urls')),
-    path('admin/', admin.site.urls),
-    path('user/', include('User.urls')),
-    path('restaurant/', include('restaurant.urls')),
-    path('auth/', include('django.contrib.auth.urls')),
+    path('admin/', admin.site.urls), # Only for development
+    path('user/', include('User.urls')), # All owner and worker urls
+    path('restaurant/', include('restaurant.urls')), # All restaurant needed urls
+    path('auth/', include('django.contrib.auth.urls')), # For logout
     
 ]   + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
