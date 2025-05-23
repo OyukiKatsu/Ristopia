@@ -20,7 +20,8 @@ urlpatterns = [
                 # === Worker ==== #
             path('owner/<int:owner_id>/workers/', WorkersView.as_view(), name='owner_workers'),
 
-
+                # === Map Creator ==== #
+            path('owner/<int:owner_id>/map-creator/', MapCreatorView.as_view(), name='owner_map_creator'),
 
 
         # ====== Worker Dashboards ====== #

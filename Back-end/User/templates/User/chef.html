@@ -1,9 +1,80 @@
 {% extends 'core/core.html' %}
-
 {% block content %}
-<div class="min-h-screen flex items-center justify-center bg-[#fde68a]">
-    <div class="bg-white text-center p-10 rounded-2xl shadow-md">
-        <h1 class="text-3xl font-bold text-[#f87171]">Welcome {{ username }} - {{ role }}</h1>
+  <div id="chef-app" class="min-h-screen p-8 bg-[#fde68a] flex flex-col items-center">
+    <h1 class="text-3xl font-bold text-[#f87171] mb-6">
+      Welcome {{ username }} – {{ role }}
+    </h1>
+
+    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-md p-6">
+      <h2 class="text-xl font-semibold mb-4 text-center">Pending Orders</h2>
+
+        <transition-group tag="ul" enter-active-class="animate__animated animate__fadeIn" leave-active-class="animate__animated animate__fadeOut">
+        <li v-for="order in orders" :key="order.id" class="flex justify-between items-center py-2 border-b animate__animated">
+          <div class="flex items-center space-x-4">
+            <img :src="order.image_url" class="w-12 h-12 object-cover rounded-full border border-gray-300" alt="Food Image">
+            <div>
+              <span class="font-medium">[[ order.table_name ]]</span>
+              &mdash;
+              [[ order.element_name ]]
+              <small class="text-gray-500 ml-2">
+                (<span v-text="new Date(order.ordered_at).toLocaleTimeString()"></span>)
+              </small>
+            </div>
+          </div>
+          <button @click="completeOrder(order.id)" class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">✔ Complete</button>
+        </li>
+
+        <!-- Empty -->
+        <li v-if="orders.length === 0" key="empty" class="text-gray-500 text-center py-4 w-full">No pending orders right now.</li>
+      </transition-group>
     </div>
-</div>
+  </div>
+
+  <script>
+    const API_PENDING = "{% url 'orders_pending' restaurant_id=restaurantID %}";
+    const API_COMPLETE = id => `/restaurant/{{ restaurantID }}/orders/${id}/complete/`;
+
+    const { createApp } = Vue;
+    const app = createApp({
+      data() {
+        return { orders: [], polling: null };
+      },
+      methods: {
+        fetchOrders() {
+          fetch(API_PENDING)
+            .then(r => r.json())
+            .then(data => { this.orders = data.orders; })
+            .catch(console.error);
+        },
+        completeOrder(id) {
+        const orderIndex = this.orders.findIndex(o => o.id === id);
+        if (orderIndex !== -1) {
+            const order = this.orders[orderIndex];
+            this.orders[orderIndex].isRemoving = true;
+            setTimeout(() => {
+            fetch(API_COMPLETE(id), {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            })
+            .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+            .then(() => {
+                this.orders = this.orders.filter(o => o.id !== id);
+            })
+            .catch(() => alert('Failed to complete order.'));
+            }, 1000);
+        }
+        }
+      },
+      mounted() {
+        this.fetchOrders();
+        this.polling = setInterval(this.fetchOrders, 10000);
+      },
+      beforeUnmount() {
+        clearInterval(this.polling);
+      }
+    });
+
+    app.config.compilerOptions.delimiters = ['[[', ']]'];
+    app.mount('#chef-app');
+  </script>
 {% endblock %}

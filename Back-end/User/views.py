@@ -299,11 +299,23 @@ class ChefView(TemplateView):
 
         context = {
             'username': user.username,
-            'role': 'Chef'
+            'role': 'Chef',
+            'restaurantID': worker.restaurant.id
         }
         return render(request, self.template_name, context)
 
+class MapCreatorView(TemplateView):
+    template_name = 'User/map.html'
+    def get(self, request, owner_id, *args, **kwargs):
+        try:
+            owner_profile = Profile.objects.get(id=owner_id)
+        except Profile.DoesNotExist:
+            raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
 
+        if request.user != owner_profile.user:
+            raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
+
+        return render(request, self.template_name)
 
 # ========================================================================== #
 # ========== "APIs" =========== #

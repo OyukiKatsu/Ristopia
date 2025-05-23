@@ -3,6 +3,7 @@
 Ctrl + K + C: Comentar
 Ctrl + K + U: Descomentar
 
+Windows + . : Abrir panel de emojis
 
 
 Django settings for TFG project.
