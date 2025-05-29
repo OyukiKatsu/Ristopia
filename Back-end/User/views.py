@@ -22,7 +22,7 @@ import json
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
-
+from core.utils import generate_table_qr
 # ========================================================================== #
 # ====== Dysplay Pages ====== #
 # ========================================================================== #
@@ -671,11 +671,9 @@ class SaveMapView(View):
             return JsonResponse({'error': "Permission denied."}, status=403)
         owner = get_object_or_404(Profile, id=owner_id)
         restaurant = get_object_or_404(Restaurante, owner=owner)
-        print(restaurant)
         try:
             payload = json.loads(request.body)
             maps_data = payload['maps']
-            print(maps_data)
         except (ValueError, KeyError):
             return HttpResponseBadRequest("Invalid JSON payload")
 
@@ -720,8 +718,10 @@ class SaveMapView(View):
                             tbl_obj.name = tbl_name
                             tbl_obj.save()
                     else:
-                        # new table
                         tbl_obj = Table.objects.create(map=map_obj, name=tbl_name)
+                        qr_path, qr_content = generate_table_qr(tbl_obj, request)
+                        tbl_obj.qr_code.save(qr_path, qr_content, save=True)
+
 
                     incoming_ids.add(tbl_obj.id)
 
@@ -790,8 +790,7 @@ class SaveMapView(View):
                 to_remove = set(existing_bars.keys()) - incoming_bar_ids
                 Bar.objects.filter(id__in=to_remove).delete()
 
-        return JsonResponse({'status': 'ok'})
-    
+        return JsonResponse({'status': 'ok'})   
 class CreateFloorView(View):
     def post(self, request, owner_id):
         if request.user.get_User_Profile.id != int(owner_id):

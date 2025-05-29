@@ -1,10 +1,20 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from core.models import *
-from django.views import View
+from django.views.generic import TemplateView, View
 from django.http import JsonResponse
 from core.models import TableOrder, Restaurante
 
+# ====== Tables ====== #
+class TableView(TemplateView):
+    template_name = 'restaurant/table.html'
+
+    def get(self, request, restaurant_id, table_id, *args, **kwargs):
+        table = get_object_or_404(Table, pk=table_id)
+        return render(request, self.template_name, {'table': table})
+
+
+# ====== Orders ====== #
 class PendingOrdersView(View):
     def get(self, request, restaurant_id, *args, **kwargs):
         worker = request.user.get_User_Profile.get_Profile_Workers.first()
@@ -28,8 +38,6 @@ class PendingOrdersView(View):
                     'ordered_at': tableOrder.date.isoformat(),
                 })
         return JsonResponse({'orders': pendingOrders})
-
-
 class CompleteOrderView(View):
     def post(self, request, restaurant_id, pk, *args, **kwargs):
         worker = request.user.get_User_Profile.get_Profile_Workers.first()

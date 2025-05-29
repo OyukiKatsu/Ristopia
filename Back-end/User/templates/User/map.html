@@ -543,7 +543,7 @@ function getCSRFToken() {
     if(state.tool==='delete'){
       for(let id in state.items){
         if(state.items[id].cells.some(c=>c.x===x&&c.y===y)){
-          if(await showModal({type:'confirm',title:'Delete?',message:'Sure?'})){
+          if(await showModal({type:'confirm',title:'Deleting Item',message:'If you save changes after the deletion, the item will be deleted permanently.\nAs well as all data related to it(Orders, states....).\nAre you sure you want to delete this item?'})){
             delete state.items[id]; render();
           }
           return;
@@ -555,11 +555,11 @@ function getCSRFToken() {
     if(state.selected.has(key)){
       state.selected.delete(key);
     } else {
-      if(isOccupied(x,y)){ toastr.warning('Occupied'); return; }
+      if(isOccupied(x,y)){ toastr.warning('This cell is already occupied'); return; }
       const tmp=[...state.selected].map(k=>{const [sx,sy]=k.split(',').map(Number);return{x:sx,y:sy};});
       tmp.push({x,y});
-      if(!isContiguous(tmp)){ toastr.warning('Contiguous only'); return; }
-      if(!areCellsSeparated(tmp)){ toastr.warning('Too close'); return; }
+      if(!isContiguous(tmp)){ toastr.warning('Cells of the same item must be contiguos'); return; }
+      if(!areCellsSeparated(tmp)){ toastr.warning('Items must be separated at least by 2 empty cells'); return; }
       state.selected.add(key);
     }
     render();
@@ -622,7 +622,7 @@ function getCSRFToken() {
     }
     if(toDel.length){
       const names=toDel.map(i=>state.items[i].name).join('\n');
-      if(!(await showModal({type:'confirm',title:'OOB items',message:`Delete:\n${names}`}))) return;
+      if(!(await showModal({type:'confirm',title:'Objects out of bounds will be deleted', message:`The next items will be eliminated:\n${names}`}))) return;
       toDel.forEach(i=>delete state.items[i]);
     }
     state.w=w; state.h=h; state.selected.clear();
