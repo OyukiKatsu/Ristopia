@@ -20,6 +20,7 @@
         <li><a href="{% url 'owner_dashboard' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Dashboard</a></li>
         <li><a href="{% url 'owner_menu' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Menu</a></li>
         <li><a href="{% url 'owner_workers' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Workers</a></li>
+        <li><a href="{% url 'owner_map_creator' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Map creator</a></li>
       </ul>
     </div>
   </div>
@@ -50,7 +51,7 @@
             <div class="relative">
               <input type="checkbox" class="sr-only peer toggle-worker" data-worker-id="{{ worker.id }}" {% if worker.active %}checked{% endif %}>
               <div class="w-12 h-6 bg-gray-300 rounded-full peer-checked:bg-green-400 transition-colors"></div>
-              <div class="absolute top-0.5 left-1 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></div>
+              <div class="absolute top-0.5 left-1 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:left-6 transition-all"></div>
             </div>
           </label>
           <button class="delete-worker text-red-500 hover:text-red-700" data-worker-id="{{ worker.id }}">

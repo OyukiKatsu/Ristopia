@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from core.models import CategoryElement, Profile, Worker, TableOrder, Restaurante, Category, Menu
+from core.models import CategoryElement, Profile, Worker, TableOrder, Restaurante, Category, Menu, Map, Table, Bar, TableCell, BarCell
 from django.contrib.auth.models import User
 from django.views.generic import TemplateView, View
 from django.urls import reverse
@@ -8,11 +8,8 @@ from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Sum
-from django.utils.timezone import now, timedelta
 from datetime import datetime, timedelta
 from django.db.models.functions import TruncHour, TruncDay, TruncDate
-from django.http import JsonResponse
-from django.http import HttpResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -21,9 +18,10 @@ import string
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_decode
-
-
+import json
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db import transaction
 
 # ========================================================================== #
 # ====== Dysplay Pages ====== #
@@ -303,20 +301,50 @@ class ChefView(TemplateView):
             'restaurantID': worker.restaurant.id
         }
         return render(request, self.template_name, context)
-
+  
+# === Map Creator ==== #
 class MapCreatorView(TemplateView):
     template_name = 'User/map.html'
+
     def get(self, request, owner_id, *args, **kwargs):
-        try:
-            owner_profile = Profile.objects.get(id=owner_id)
-        except Profile.DoesNotExist:
-            raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
+        profile = get_object_or_404(Profile, id=owner_id)
+        if request.user != profile.user:
+            raise PermissionDenied
 
-        if request.user != owner_profile.user:
-            raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
+        restaurant = profile.get_Profile_Restaurantes.first()
+        all_maps = Map.objects.filter(restaurant=restaurant)
 
-        return render(request, self.template_name)
+        maps_payload = []
+        for m in all_maps:
+            maps_payload.append({
+                'id': m.id,
+                'name': m.name,
+                'w': m.dimension_x,
+                'h': m.dimension_y,
+                'tables': [
+                    {
+                    'id': tbl.id,
+                        'name': tbl.name,
+                        'cells': list(tbl.cells.values('x','y'))
+                    }
+                    for tbl in m.get_Map_Tables.all()
+                ],
+                'bars': [
+                    {
+                    'id': bar.id,
+                        'cells': list(bar.cells.values('x','y'))
+                    }
+                    for bar in m.get_Map_Bars.all()
+                ]
+            })
 
+        context = {
+            'profile': profile,
+            'restaurant': restaurant,
+            'maps_json': json.dumps(maps_payload, cls=DjangoJSONEncoder),
+        }
+        return render(request, self.template_name, context)
+    
 # ========================================================================== #
 # ========== "APIs" =========== #
 # ========================================================================== #
@@ -565,6 +593,8 @@ class CreateWorkerView(View):
                 return code
         
     def post(self, request, owner_id):
+        if request.user.get_User_Profile.id != int(owner_id):
+            return JsonResponse({'error': "Permission denied."}, status=403)
         profile = get_object_or_404(Profile, id=owner_id)
         restaurant = profile.get_Profile_Restaurantes.first()
 
@@ -632,3 +662,162 @@ class DeleteWorkerView(LoginRequiredMixin, View):
         profile.delete()
         user.delete()
         return JsonResponse({'status':'success'})
+    
+
+# === Map Creator === #
+class SaveMapView(View):
+    def post(self, request, owner_id):
+        if request.user.get_User_Profile.id != int(owner_id):
+            return JsonResponse({'error': "Permission denied."}, status=403)
+        owner = get_object_or_404(Profile, id=owner_id)
+        restaurant = get_object_or_404(Restaurante, owner=owner)
+        print(restaurant)
+        try:
+            payload = json.loads(request.body)
+            maps_data = payload['maps']
+            print(maps_data)
+        except (ValueError, KeyError):
+            return HttpResponseBadRequest("Invalid JSON payload")
+
+        with transaction.atomic():
+            for m in maps_data:
+                map_id = m.get('id')
+                name   = m['name']
+                w      = m.get('w') or m.get('dimension_x')
+                h      = m.get('h') or m.get('dimension_y')
+                tables = m.get('tables', [])
+                bars   = m.get('bars', [])
+
+                # Map
+                if map_id:
+                    map_obj = get_object_or_404(Map, pk=map_id, restaurant=restaurant)
+                    map_obj.name = name
+                    map_obj.dimension_x = w
+                    map_obj.dimension_y = h
+                    map_obj.save()
+                else:
+                    map_obj = Map.objects.create(
+                        restaurant=restaurant,
+                        name=name,
+                        dimension_x=w,
+                        dimension_y=h
+                    )
+
+                # Tables
+                # Lookup of existing tables
+                existing_tables = { t.id: t for t in map_obj.get_Map_Tables.all() }
+
+                incoming_ids = set()
+                for tbl in tables:
+                    tbl_id   = tbl.get('id')
+                    tbl_name = tbl['name']
+                    cells    = tbl.get('cells', [])
+
+                    if tbl_id and tbl_id in existing_tables:
+                        # update name if changed
+                        tbl_obj = existing_tables[tbl_id]
+                        if tbl_obj.name != tbl_name:
+                            tbl_obj.name = tbl_name
+                            tbl_obj.save()
+                    else:
+                        # new table
+                        tbl_obj = Table.objects.create(map=map_obj, name=tbl_name)
+
+                    incoming_ids.add(tbl_obj.id)
+
+                    # --- diff cells ---
+                    # existing cells set
+                    existing_cells = set(
+                        map(lambda c: (c.x, c.y), tbl_obj.cells.all())
+                    )
+                    new_cells = set((c['x'], c['y']) for c in cells)
+
+                    # delete removed cells
+                    to_delete = existing_cells - new_cells
+                    if to_delete:
+                        TableCell.objects.filter(
+                            table=tbl_obj,
+                            x__in=[x for x,y in to_delete],
+                            y__in=[y for x,y in to_delete]
+                        ).delete()
+
+                    # insert new cells
+                    to_add = new_cells - existing_cells
+                    TableCell.objects.bulk_create([
+                        TableCell(table=tbl_obj, x=x, y=y)
+                        for x,y in to_add
+                    ])
+
+                to_remove = set(existing_tables.keys()) - incoming_ids
+                Table.objects.filter(id__in=to_remove).delete()
+
+                # Handle Bars
+                existing_bars = { b.id: b for b in map_obj.get_Map_Bars.all() }
+                incoming_bar_ids = set()
+
+                for bar in bars:
+                    bar_id = bar.get('id')
+                    cells  = bar.get('cells', [])
+
+                    if bar_id and bar_id in existing_bars:
+                        bar_obj = existing_bars[bar_id]
+                    else:
+                        bar_obj = Bar.objects.create(map=map_obj)
+
+                    incoming_bar_ids.add(bar_obj.id)
+
+                    existing_cells = set(
+                        map(lambda c: (c.x, c.y), bar_obj.cells.all())
+                    )
+                    new_cells = set((c['x'], c['y']) for c in cells)
+
+                    # delete removed cells
+                    to_delete = existing_cells - new_cells
+                    if to_delete:
+                        BarCell.objects.filter(
+                            bar=bar_obj,
+                            x__in=[x for x,y in to_delete],
+                            y__in=[y for x,y in to_delete]
+                        ).delete()
+
+                    # insert new cells
+                    to_add = new_cells - existing_cells
+                    BarCell.objects.bulk_create([
+                        BarCell(bar=bar_obj, x=x, y=y)
+                        for x,y in to_add
+                    ])
+
+                to_remove = set(existing_bars.keys()) - incoming_bar_ids
+                Bar.objects.filter(id__in=to_remove).delete()
+
+        return JsonResponse({'status': 'ok'})
+    
+class CreateFloorView(View):
+    def post(self, request, owner_id):
+        if request.user.get_User_Profile.id != int(owner_id):
+            return JsonResponse({'error': "Permission denied."}, status=403)
+        data = json.loads(request.body)
+        name = data.get('name')
+        w = data.get('w')
+        h = data.get('h')
+
+        if not (name and isinstance(w, int) and isinstance(h, int)):
+            return JsonResponse({'error': 'Invalid data'}, status=400)
+
+        restaurant = get_object_or_404(Restaurante, owner_id=owner_id)
+
+        new_map = Map.objects.create(
+            restaurant=restaurant,
+            name=name,
+            dimension_x=w,
+            dimension_y=h
+        )
+
+        return JsonResponse({
+            'id': new_map.id,
+            'name': new_map.name,
+            'w': new_map.dimension_x,
+            'h': new_map.dimension_y,
+            'tables': [],
+            'bars': []
+        })

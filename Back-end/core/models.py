@@ -31,6 +31,7 @@ class Restaurante(models.Model):
 # Map
 class Map(models.Model):
     restaurant = models.ForeignKey(Restaurante, on_delete=models.CASCADE, related_name='get_Restaurante_Maps')
+    name = models.CharField(max_length=100)
     dimension_x = models.IntegerField()
     dimension_y = models.IntegerField()
 
@@ -38,15 +39,12 @@ class Map(models.Model):
         db_table = 'Map'
 
     def __str__(self):
-        return f"Map for - {self.restaurant.name}"
+        return f"{self.name} - {self.restaurant.name}"
 
 # Table
 class Table(models.Model):
     map = models.ForeignKey(Map, on_delete=models.CASCADE, related_name='get_Map_Tables')
     name = models.CharField(max_length=100)
-    position_x = models.IntegerField()
-    position_y = models.IntegerField()
-    type = models.IntegerField(choices=[(2, 'Double'), (4, 'Familiar'), (6, 'Familiar Numerous'), (8, 'Meeting')])
 
     class Meta:
         db_table = 'Table'
@@ -54,13 +52,21 @@ class Table(models.Model):
     def __str__(self):
         return f"Table Restaurant - {self.name}"
 
+class TableCell(models.Model):
+    table = models.ForeignKey(Table, on_delete=models.CASCADE, related_name='cells')
+    x = models.IntegerField()
+    y = models.IntegerField()
+
+    class Meta:
+        unique_together = ('x', 'y', 'table')
+        db_table = 'TableCell'
+    
+    def __str__(self):
+        return f"Cell for table - {self.table.name} - {self.x}, {self.y}"
+    
 # Bar
 class Bar(models.Model):
     map = models.ForeignKey(Map, on_delete=models.CASCADE, related_name='get_Map_Bars')
-    position_top_left_X = models.IntegerField()
-    position_top_left_Y = models.IntegerField()
-    position_bottom_right_X = models.IntegerField()
-    position_bottom_right_Y = models.IntegerField()
 
     class Meta:
         db_table = 'Bar'
@@ -68,6 +74,18 @@ class Bar(models.Model):
     def __str__(self):
         return f"Bar for - {self.map.restaurant.name}"
 
+class BarCell(models.Model):    
+    bar = models.ForeignKey(Bar, on_delete=models.CASCADE, related_name='cells')
+    x = models.IntegerField()
+    y = models.IntegerField()
+
+    class Meta:
+        unique_together = ('x', 'y', 'bar')
+        db_table = 'BarCell'
+    
+    def __str__(self):
+        return f"Cell for bar - {self.bar.map.restaurant.name} - {self.x}, {self.y}"
+    
 # Menu
 class Menu(models.Model):
     restaurant = models.ForeignKey(Restaurante, on_delete=models.CASCADE, related_name='get_Restaurante_Menus')
