@@ -399,7 +399,7 @@ $('#confirm-edit-category-btn').click(() => {
       $.get(`/user/owner/${ownerId}/menu/category/${catId}/elements/`)
        .done(response => {
          const cards = response.elements.map(element => `
-           <div id="element-${element.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4">
+           <div id="element-${element.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4 overflow-x-auto">
              ${element.icon_url
                ? `<img src="${element.icon_url}" class="w-24 h-24 object-cover rounded">`
                : `<div class="w-24 h-24 bg-gray-100 rounded flex items-center justify-center">No Image</div>`

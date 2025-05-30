@@ -47,11 +47,13 @@
   <!-- Map -->
   <div class="min-h-screen bg-[#fde68a] flex px-4 py-12">
     <div class="flex-1 flex flex-col bg-white rounded-lg shadow-lg p-6 overflow-hidden h-full">
-    <div id="floor-selector-container" class="mb-4"></div>
+      <div id="floor-selector-container" class="mb-4"></div>
       <!-- Grid -->
       <div id="map-container" class="flex-1 h-full border border-gray-300 overflow-auto p-2">
         <div id="map-grid" class="inline-grid bg-[#f3f4f6] gap-0" style="grid-template-columns: repeat(5, 2rem); grid-template-rows: repeat(5, 2rem);"></div>
       </div>
+      <br/>
+      <button id="download-qrs-btn" class="bg-indigo-600 text-white rounded px-4 py-2 ml-2">Download QRs</button>
     </div>
 
         <!-- TOOLBOX PANEL (slides in/out, mid-right) -->
@@ -82,16 +84,22 @@
 
 
 <!-- Confirm Modal -->
-<div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-  <div class="bg-white p-6 rounded shadow-lg w-96">
-    <h2 class="text-lg font-semibold mb-4" id="confirm-modal-title">Notice</h2>
-    <p class="mb-4" id="confirm-modal-message">Are you sure?</p>
-    <div class="flex justify-end space-x-2">
+<div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 px-4">
+  <div class="bg-white p-4 sm:p-6 rounded shadow-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
+    <h2 class="text-base sm:text-lg md:text-xl font-semibold mb-4 break-words text-center" id="confirm-modal-title">
+      Notice
+    </h2>
+    <p class="text-sm sm:text-base mb-4 break-words" id="confirm-modal-message">
+      Are you sure?
+    </p>
+    <div class="flex justify-end flex-wrap gap-2">
       <button id="confirm-modal-cancel" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
       <button id="confirm-modal-ok" class="bg-blue-600 text-white px-4 py-2 rounded">OK</button>
     </div>
   </div>
 </div>
+
+
 
 <!-- Input Modal -->
 <div id="input-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
@@ -161,6 +169,22 @@
   </div>
 </div>
 
+<!-- QR Selection Modal -->
+<div id="qr-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 px-4">
+  <div class="bg-white p-6 rounded shadow-lg w-full max-w-lg max-h-[80vh] overflow-auto">
+    <h2 class="text-xl font-semibold mb-4">Select Tables for QR</h2>
+    <div id="qr-list"></div>
+    <div class="mt-4 flex justify-between">
+      <button id="qr-select-all" class="px-4 py-2 bg-gray-300 rounded">Select All</button>
+      <div>
+        <button id="qr-cancel" class="px-4 py-2 bg-gray-300 rounded mr-2">Cancel</button>
+        <button id="qr-confirm" class="px-4 py-2 bg-indigo-600 text-white rounded">Generate PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <style>
   /* default cells still get a border */
   #map-grid > div {
@@ -220,6 +244,12 @@ function getCSRFToken() {
   const saveBtn          = document.getElementById('save-btn');
   const cancelBtn        = document.getElementById('cancel-btn');
   const toolLbl          = document.getElementById('current-tool');
+  const downloadBtn      = document.getElementById('download-qrs-btn');
+  const qrModal          = document.getElementById('qr-modal');
+  const qrList           = document.getElementById('qr-list');
+  const qrSelectAll      = document.getElementById('qr-select-all');
+  const qrCancel         = document.getElementById('qr-cancel');
+  const qrConfirm        = document.getElementById('qr-confirm');
 
   // ──────────────────────────────────────────────────────────────────────────
   // 3) IMAGE SOURCES
@@ -543,7 +573,7 @@ function getCSRFToken() {
     if(state.tool==='delete'){
       for(let id in state.items){
         if(state.items[id].cells.some(c=>c.x===x&&c.y===y)){
-          if(await showModal({type:'confirm',title:'Deleting Item',message:'If you save changes after the deletion, the item will be deleted permanently.\nAs well as all data related to it(Orders, states....).\nAre you sure you want to delete this item?'})){
+          if(await showModal({type:'confirm',title:'Deleting Item',message:'Saving changes after deleting this item, will be permanent.\nThe item will be deleted.\nAs well as all data related to it(Orders, states....).\nAre you sure you want to delete this item?'})){
             delete state.items[id]; render();
           }
           return;
@@ -684,6 +714,7 @@ function getCSRFToken() {
       cancelBtn.classList.add('hidden');
       editBtn.classList.remove('hidden');
       toolboxToggleBtn.classList.add('hidden');
+      window.location.reload();
     } catch (err) {
       console.error(err);
       toastr.error('Failed to save maps');
@@ -715,6 +746,77 @@ function getCSRFToken() {
       });
   }
 
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 17) QR code generator
+  // ──────────────────────────────────────────────────────────────────────────
+
+  downloadBtn.addEventListener('click', ()=>{
+    // build the list grouped by floor
+    qrList.innerHTML = '';
+    allMaps.forEach((m, floorIdx) => {
+      const fld = document.createElement('div');
+      fld.className = 'mb-4';
+      fld.innerHTML = `<strong>${m.name}</strong><br/>`;
+      m.tables.forEach(tbl => {
+        const id = `qr-tbl-${tbl.id}`;
+        fld.innerHTML += `
+          <label class="inline-block mr-4">
+            <input type="checkbox" class="qr-checkbox" data-tbl-id="${tbl.id}" id="${id}"/>
+            ${tbl.name}
+          </label>
+        `;
+      });
+      qrList.appendChild(fld);
+    });
+    qrModal.classList.remove('hidden');
+  });
+
+  qrSelectAll.addEventListener('click', ()=>{
+    document.querySelectorAll('.qr-checkbox')
+            .forEach(chk => chk.checked = true);
+  });
+
+  qrCancel.addEventListener('click', ()=> {
+    qrModal.classList.add('hidden');
+  });
+
+  qrConfirm.addEventListener('click', async ()=>{
+    const selected = Array.from(document.querySelectorAll('.qr-checkbox:checked'))
+      .map(chk => parseInt(chk.dataset.tblId,10));
+    if (selected.length === 0) {
+      toastr.warning('Select at least one table');
+      return;
+    }
+    qrModal.classList.add('hidden');
+
+    // Fetch to GenerateQR
+    const resp = await fetch(
+      `/user/owner/${ownerId}/map-creator/qr`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken(),
+        },
+        body: JSON.stringify({ tables: selected })
+      }
+    );
+    if (!resp.ok) {
+      toastr.error('Failed to generate PDF');
+      return;
+    }
+    // download the file
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `table_qrs.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
 
 })();
 </script>

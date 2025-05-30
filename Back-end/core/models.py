@@ -3,22 +3,6 @@ from django.contrib.auth.models import User
 import os
 from django.utils.text import slugify
 
-# Function to dinamically store the qr of tables organized
-# Example path: qr_codes/<restaurant_name>/<map_name>/qr_table_<table_name>.png
-def qr_code_upload_path(instance, filename):
-    restaurant_name = slugify(instance.map.restaurant.name)
-    map_name = slugify(instance.map.name)
-    table_name = slugify(instance.name)
-    
-
-    return os.path.join(
-        'qr_codes',
-        restaurant_name,
-        map_name,
-        f"qr_table_{table_name}.png"
-    )
-
-
 # Profile
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='get_User_Profile')
@@ -63,7 +47,6 @@ class Map(models.Model):
 class Table(models.Model):
     map = models.ForeignKey(Map, on_delete=models.CASCADE, related_name='get_Map_Tables')
     name = models.CharField(max_length=100)
-    qr_code = models.ImageField(upload_to=qr_code_upload_path, null=True, blank=True, default="core/no_qr.png")
 
     class Meta:
         db_table = 'Table'

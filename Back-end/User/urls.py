@@ -64,7 +64,7 @@ urlpatterns = [
             path('owner/<int:owner_id>/workers/<int:worker_id>/delete/', DeleteWorkerView.as_view(), name='delete_worker'),
                 # === Map Creator ==== #
             path('owner/<int:owner_id>/map-creator/save', SaveMapView.as_view(), name='save_map'),
-            # path('owner/<int:owner_id>/map-creator/update', UpdateMapView.as_view(), name='update_map'),
             path('owner/<int:owner_id>/map-creator/floor/create', CreateFloorView.as_view(), name='create_floor'),
+            path('owner/<int:owner_id>/map-creator/qr', GenerateQR.as_view(), name='generate_qr'),
 
 ]
