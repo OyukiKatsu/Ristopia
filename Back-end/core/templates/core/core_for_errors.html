@@ -1,0 +1,46 @@
+{% load static %}
+{% load static tailwind_tags %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ristòpia</title>
+  <link rel="icon" type="image/png" href="/media/core/Icon.png" />
+</head>
+<body>
+  <div class="overflow-x-auto">
+    {% block content %}
+    {% endblock content %}
+  </div>
+
+
+
+</body>
+
+
+<style>
+html, body {
+  height: 100%; 
+  overflow-x: hidden; 
+  
+}
+
+body {
+  overflow-y: scroll; 
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  -ms-overflow-style: none;  
+  scrollbar-width: none; 
+}
+
+</style>
+</html>

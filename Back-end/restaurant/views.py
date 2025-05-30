@@ -4,14 +4,40 @@ from core.models import *
 from django.views.generic import TemplateView, View
 from django.http import JsonResponse
 from core.models import TableOrder, Restaurante
+from TFG import settings
+from django.core.exceptions import SuspiciousOperation
+
 
 # ====== Tables ====== #
+from django.core import signing
+from django.shortcuts import get_object_or_404, render
+from core.models import Restaurante, Table
+
 class TableView(TemplateView):
     template_name = 'restaurant/table.html'
 
-    def get(self, request, restaurant_id, table_id, *args, **kwargs):
-        table = get_object_or_404(Table, pk=table_id)
-        return render(request, self.template_name, {'table': table})
+    def get(self, request, token, *args, **kwargs):
+        try:
+            data = signing.loads(
+                token,
+                key=settings.SECRET_KEY,
+                salt='table-token',
+                serializer=signing.JSONSerializer
+            )
+            rest_id  = data['restaurant_id']
+            table_id = data['table_id']
+        except signing.BadSignature:
+            raise SuspiciousOperation("The url decryption was not successful")
+
+        restaurant = get_object_or_404(Restaurante, pk=rest_id)
+        table      = get_object_or_404(Table, pk=table_id, map__restaurant=restaurant)
+        context = {
+            'table': table,
+            'restaurant': restaurant
+        }
+
+        return render(request, self.template_name, context)
+
 
 
 # ====== Orders ====== #

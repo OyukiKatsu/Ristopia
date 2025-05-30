@@ -5,6 +5,25 @@ from django.urls import reverse
 import qrcode
 from PIL import Image
 from django.utils.text import slugify
+from django.core import signing
+
+
+def make_table_token(table):
+    payload = {
+        'restaurant_id': table.map.restaurant.id,
+        'table_id':      table.id,
+        # optional: 'restaurant_name': table.map.restaurant.name,
+        #           'table_name':      table.name,
+    }
+    return signing.dumps(
+        payload,
+        key=settings.SECRET_KEY,
+        salt='table-token',
+        serializer=signing.JSONSerializer
+    )
+
+
+
 
 def generate_table_qr(table, request):
     """
@@ -12,9 +31,11 @@ def generate_table_qr(table, request):
     embeds the restaurant’s icon at center, and returns path and image content.
     """
     # Build the URL dynamically using the request object
-    url = request.build_absolute_uri(
-        reverse('restaurant:table', args=[table.map.restaurant.id, table.id])
+    token = make_table_token(table)
+    url   = request.build_absolute_uri(
+        reverse('restaurant:table', args=[token])
     )
+
 
     # Load & resize the logo
     logo_path = os.path.join(settings.MEDIA_ROOT, 'core', 'Icon.png')

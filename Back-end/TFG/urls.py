@@ -18,10 +18,11 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from core.views import error_403, error_404
+from core.views import error_403, error_404, error_400
 
 handler403 = error_403
 handler404 = error_404
+handler400 = error_400
 
 urlpatterns = [
     path('', include('core.urls')),
