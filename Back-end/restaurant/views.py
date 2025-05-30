@@ -1,17 +1,15 @@
+from urllib.parse import urljoin
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from core.models import *
 from django.views.generic import TemplateView, View
 from django.http import JsonResponse
-from core.models import TableOrder, Restaurante
+from core.models import TableOrder, Restaurante, Table, Category, CategoryElement
 from TFG import settings
 from django.core.exceptions import SuspiciousOperation
-
-
-# ====== Tables ====== #
 from django.core import signing
-from django.shortcuts import get_object_or_404, render
-from core.models import Restaurante, Table
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 
 class TableView(TemplateView):
     template_name = 'restaurant/table.html'
@@ -27,21 +25,30 @@ class TableView(TemplateView):
             rest_id  = data['restaurant_id']
             table_id = data['table_id']
         except signing.BadSignature:
-            raise SuspiciousOperation("The url decryption was not successful")
+            raise SuspiciousOperation("Invalid table link")
 
         restaurant = get_object_or_404(Restaurante, pk=rest_id)
         table      = get_object_or_404(Table, pk=table_id, map__restaurant=restaurant)
-        context = {
-            'table': table,
-            'restaurant': restaurant
-        }
+        menu = Menu.objects.filter(restaurant=restaurant).first()
 
-        return render(request, self.template_name, context)
+        if menu:
+            categories = list(
+                menu.get_Menu_Categories
+                    .filter(active=True)
+                    .values('id', 'name')
+            )
+        else:
+            categories = []
 
-
+        return render(request, self.template_name, {
+            'table':       table,
+            'restaurant':  restaurant,
+            'menu':        menu,
+            'categories':  categories,
+        })
 
 # ====== Orders ====== #
-class PendingOrdersView(View):
+class PendingOrdersView(LoginRequiredMixin, View):
     def get(self, request, restaurant_id, *args, **kwargs):
         worker = request.user.get_User_Profile.get_Profile_Workers.first()
         restaurant = get_object_or_404(Restaurante, pk=restaurant_id)
@@ -64,7 +71,7 @@ class PendingOrdersView(View):
                     'ordered_at': tableOrder.date.isoformat(),
                 })
         return JsonResponse({'orders': pendingOrders})
-class CompleteOrderView(View):
+class CompleteOrderView(LoginRequiredMixin, View):
     def post(self, request, restaurant_id, pk, *args, **kwargs):
         worker = request.user.get_User_Profile.get_Profile_Workers.first()
         restaurant = get_object_or_404(Restaurante, pk=restaurant_id)
@@ -83,3 +90,93 @@ class CompleteOrderView(View):
         orderState.save()
         
         return JsonResponse({'success': True})
+    
+
+
+
+class AuthCodeView(View):
+    """
+    POST /restaurant/table/<token>/authenticate/
+    Body JSON: { "code": "<5-char code>" }
+    """
+    def post(self, request, token, *args, **kwargs):
+        import json
+        try:
+            data = json.loads(request.body)
+            code = data.get('code','').strip()
+        except:
+            return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
+
+        try:
+            payload = signing.loads(
+                token,
+                key=settings.SECRET_KEY,
+                salt='table-token',
+                serializer=signing.JSONSerializer
+            )
+            rest_id  = payload['restaurant_id']
+            table_id = payload['table_id']
+        except signing.BadSignature:
+            return JsonResponse({'ok': False, 'error': 'Bad token'}, status=400)
+
+        table = get_object_or_404(Table, pk=table_id, map__restaurant_id=rest_id)
+        if table.authentication_code != code:
+            return JsonResponse({'ok': False, 'error': 'The submitted code is incorrect'}, status=400)
+
+        return JsonResponse({
+            'ok':         True,
+            'table_name': table.name,
+            'code':       code
+        })
+
+
+
+
+
+
+class CategoriesView(View):
+    """
+    GET /api/restaurants/<restaurant_id>/menu/categories/
+    Returns JSON { categories: [{id, name}, …] }
+    """
+    def get(self, request, restaurant_id, *args, **kwargs):
+        qs = Category.objects.filter(
+            menu__restaurant_id=restaurant_id,
+            active=True
+        ).values('id', 'name')
+
+        return JsonResponse({'categories': list(qs)})
+
+
+class CategoryElementsView(View):
+    """
+    GET /api/restaurants/<restaurant_id>/menu/categories/<category_id>/elements/
+    Returns JSON { elements: [{id, name, description, price, icon_url}, …] }
+    """
+    def get(self, request, restaurant_id, category_id, *args, **kwargs):
+        # ensure category is active and belongs to that restaurant
+        get_object_or_404(
+            Category,
+            pk=category_id,
+            menu__restaurant_id=restaurant_id,
+            active=True
+        )
+
+        qs = CategoryElement.objects.filter(
+            category_id=category_id,
+            active=True
+        ).values('id', 'name', 'description', 'price', 'icon')
+
+        elements = []
+        for el in qs:
+            icon_path = el.get('icon')
+            icon_url = icon_path and urljoin(settings.MEDIA_URL, icon_path)
+            elements.append({
+                'id': el['id'],
+                'name': el['name'],
+                'description': el['description'],
+                'price': str(el['price']),
+                'icon_url': icon_url,
+            })
+
+        return JsonResponse({'elements': elements})

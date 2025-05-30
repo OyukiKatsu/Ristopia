@@ -2,13 +2,271 @@
 {% load static tailwind_tags %}
 
 {% block content %}
+<div id="table-app" class="min-h-screen bg-yellow-200 flex flex-col">
 
-<div class="min-h-screen flex items-center justify-center bg-[#fde68a]">
-    <div class="bg-white text-center p-10 rounded-2xl shadow-md">
-
-    {{ table.name }}
-
+  <!-- Header with Auth Button -->
+    <header class="bg-white shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-center mb-2 sm:mb-0">
+        {% if restaurant.icon %}
+        <img src="{{ restaurant.icon.url }}"
+            alt="{{ restaurant.name }}"
+            class="w-10 h-10 rounded-full mr-3 object-cover">
+        {% endif %}
+        <h1 class="text-xl font-bold">{{ restaurant.name }}</h1>
     </div>
+
+    <button
+        @click="authenticated ? showYourCode() : openAuthModal()"
+        class="self-end sm:self-auto px-2 py-1 rounded-full text-xs sm:text-sm font-medium
+            bg-yellow-400 text-white hover:bg-yellow-500"
+    >
+        [[ authenticated ? 'View Code' : 'Authenticate Here' ]]
+    </button>
+    </header>
+
+
+
+
+  <!-- Category Bar -->
+  <nav class="bg-yellow-100 overflow-x-auto whitespace-no-wrap p-2">
+    <transition-group tag="div" name="cat"
+      enter-active-class="animate__animated animate__fadeInRight"
+      leave-active-class="animate__animated animate__fadeOutLeft"
+      class="inline-flex space-x-2"
+    >
+      <button
+        v-for="cat in categories"
+        :key="cat.id"
+        @click="selectCategory(cat.id)"
+        :class="[ 
+          'px-4 py-2 rounded-full text-sm font-medium flex-shrink-0',
+          selected === cat.id ? 'bg-yellow-400 text-white' : 'bg-white text-gray-700'
+        ]"
+      >
+        [[ cat.name ]]
+      </button>
+    </transition-group>
+  </nav>
+
+  <!-- Elements -->
+  <main class="flex-1 overflow-y-auto p-4">
+    <transition-group tag="div" name="item" class="space-y-4"
+      enter-active-class="animate__animated animate__fadeInUp"
+      leave-active-class="animate__animated animate__fadeOutDown"
+    >
+      <div
+        v-for="item in elements"
+        :key="item.id"
+        class="bg-white rounded-lg shadow p-4 flex items-start space-x-3"
+      >
+        <div class="flex-shrink-0">
+          <img v-if="item.icon_url" :src="item.icon_url"
+               class="w-20 h-20 rounded object-cover">
+          <div v-else
+               class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs">
+            No Image
+          </div>
+        </div>
+        <div class="flex-1">
+          <h2 class="font-semibold text-base">[[ item.name ]]</h2>
+          <p class="text-sm text-gray-600 mt-1 line-clamp-2">
+            [[ item.description ]]
+          </p>
+          <p class="text-sm text-green-600 font-medium mt-2">
+            €[[ item.price ]]
+          </p>
+        </div>
+      </div>
+    </transition-group>
+    <p v-if="elements.length===0" class="text-center text-gray-500 mt-10">
+      No items available in this category.
+    </p>
+  </main>
+
+  <!-- AUTH CODE MODAL -->
+  <div
+    v-if="showAuth"
+    @click.self="showAuth=false; authError=null"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+  >
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-sm p-6">
+      <h3 class="text-lg font-semibold mb-4">Enter 5-char Code</h3>
+      <input
+        v-model="authInput"
+        maxlength="5"
+        class="w-full border p-2 rounded mb-2"
+        placeholder="ABCDE"
+      >
+      <p v-if="authError" class="text-red-500 text-sm mb-2">[[ authError ]]</p>
+      <div class="flex justify-end">
+        <button @click="showAuth=false"
+                class="px-4 py-2 rounded mr-2">Cancel</button>
+        <button @click="submitAuth"
+                class="px-4 py-2 bg-yellow-400 text-white rounded">
+          Submit
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW CODE MODAL -->
+  <div
+    v-if="showCode"
+    @click.self="showCode=false"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+  >
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-xs p-6 text-center">
+      <h3 class="font-semibold mb-4">Your Table Code</h3>
+      <p class="text-2xl font-mono mb-4">[[ authCode ]]</p>
+      <button @click="showCode=false"
+              class="px-4 py-2 bg-yellow-400 text-white rounded">
+        Close
+      </button>
+    </div>
+  </div>
+
 </div>
 
+<script>
+  const { createApp } = Vue;
+
+  createApp({
+    delimiters: ['[[',']]'],
+    data() {
+      return {
+        categories: [], elements: [], selected: null,
+        showAuth:false, showCode:false,
+        authInput:'', authError:null,
+        authenticated:false, authCode:'',
+      }
+    },
+    methods: {
+      getCSRFToken() {
+            return this.getCookie('csrftoken');
+        },
+      // helper to read/write cookie
+      getCookie(name) {
+        return document.cookie.split('; ').reduce((r,v)=>
+          v.startsWith(name+'=') ? v.split('=')[1] : r, ''
+        );
+      },
+      setCookie(name,val) {
+        document.cookie = `${name}=${val}; path=/;`;
+      },
+
+      // 1) on load, check if cookie exists and try auto-auth
+    tryRestoreAuth() {
+        const key = 'table_auth';
+        const code = this.getCookie(key);
+        if (!code) return;
+
+        // use current path + 'authenticate/' to resue the encripted url
+        fetch(window.location.pathname + 'authenticate/',
+        { method:'POST',
+        headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken':  this.getCSRFToken()
+        },
+            body: JSON.stringify({ code })
+        }
+        )
+        .then(r=>r.json())
+        .then(json=>{
+        if (json.ok) {
+            this.authenticated = true;
+            this.authCode      = code;
+        } else {
+        this.setCookie(key,''); // wipe cookie if its incorrect
+        }
+        });
+    },
+      // 2) Clicks Authenticate Here
+      openAuthModal() {
+        this.authInput=''; this.authError=null;
+        this.showAuth = true;
+      },
+
+        // 3) submit code
+        submitAuth() {
+            const code = this.authInput.trim();
+            if (code.length!==5) {
+            this.authError = 'Must be 5 characters';
+            return;
+            }
+
+            fetch(window.location.pathname + 'authenticate/',
+            { method:'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken':  this.getCSRFToken()
+            },
+                body: JSON.stringify({ code })
+            }
+            )
+            .then(r=>r.json())
+            .then(json=>{
+            if (json.ok) {
+                this.authenticated = true;
+                this.authCode      = code;
+            this.setCookie('table_auth', code);
+                this.showAuth = false;
+            } else {
+                this.authError = json.error || 'Wrong code';
+            }
+            })
+            .catch(()=>{
+            this.authError = 'Network error';
+            });
+        },
+
+        // 4) view the stored code
+        showYourCode() {
+            this.showCode = true;
+        },
+
+
+    // Others feth
+      fetchCategories() {
+        fetch(`/restaurant/{{ restaurant.id }}/menu/categories/`)
+          .then(r => r.json())
+          .then(json => {
+            this.categories = json.categories;
+            if (!this.selected || !this.categories.find(c => c.id === this.selected)) {
+              this.selected = this.categories[0]?.id || null;
+            }
+          })
+          .catch(console.error);
+      },
+
+      fetchElements() {
+        if (!this.selected) {
+          this.elements = [];
+          return;
+        }
+        fetch(`/restaurant/{{ restaurant.id }}/menu/categories/${this.selected}/elements/`)
+          .then(r => r.json())
+          .then(json => {
+            this.elements = json.elements;
+          })
+          .catch(console.error);
+      },
+
+      selectCategory(catId) {
+        this.selected = catId;
+        this.fetchElements();
+      }
+    },
+
+    mounted() {
+      this.tryRestoreAuth();
+      // now load your menu as before
+      this.fetchCategories();
+      this.$nextTick(()=>this.fetchElements());
+      setInterval(()=>{
+        this.fetchCategories();
+        this.fetchElements();
+      }, 1000);
+    }
+  }).mount('#table-app');
+</script>
 {% endblock content %}

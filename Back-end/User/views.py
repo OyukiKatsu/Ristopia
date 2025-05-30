@@ -116,8 +116,6 @@ class RegisterView(TemplateView):
 
         # Redirect to custom login on success
         return redirect('custom_login')
-
-
 class LoginView(TemplateView):
     """
     LoginView
@@ -177,8 +175,6 @@ class LoginView(TemplateView):
 
         # On any error, re‐render login page
         return render(request, self.template_name)
-
-
 class ResetPasswordView(TemplateView):
     """
     ResetPasswordView
@@ -192,8 +188,6 @@ class ResetPasswordView(TemplateView):
         Renders the password reset request page.
         """
         return render(request, self.template_name)
-
-
 class ResetPasswordTokenView(TemplateView):
     """
     ResetPasswordTokenView
@@ -255,7 +249,6 @@ class ResetPasswordTokenView(TemplateView):
         else:
             messages.error(request, 'Invalid or expired link.')
             return redirect(request.path)
-
 
 # ====== Owner Dashboards ====== #
 class OwnerView(LoginRequiredMixin, TemplateView):
@@ -361,7 +354,6 @@ class MenuView(LoginRequiredMixin, TemplateView):
             raise PermissionDenied("403 Forbidden: You don't have access to this owner's dashboard.")
         return render(request, self.template_name, self.get_context_data(**kwargs))
 
-
 # === Worker ==== #
 class WorkersView(LoginRequiredMixin, TemplateView):
     """
@@ -393,7 +385,6 @@ class WorkersView(LoginRequiredMixin, TemplateView):
         }
         return render(request, self.template_name, context)
 
-
 # ====== Worker Dashboards ====== #
 class WaiterView(LoginRequiredMixin, TemplateView):
     """
@@ -419,8 +410,6 @@ class WaiterView(LoginRequiredMixin, TemplateView):
             'role': 'Waiter'
         }
         return render(request, self.template_name, context)
-
-
 class ChefView(LoginRequiredMixin, TemplateView):
     """
     ChefView
@@ -446,7 +435,6 @@ class ChefView(LoginRequiredMixin, TemplateView):
             'restaurantID': worker.restaurant.id
         }
         return render(request, self.template_name, context)
-
 
 # === Map Creator ==== #
 class MapCreatorView(LoginRequiredMixin, TemplateView):
@@ -555,7 +543,6 @@ class ResetPasswordEmailView(View):
             )
         return HttpResponse(status=200)
 
-
 # ====== Owner Dashboards ====== #
 class DashboardChartData(View):
     """
@@ -642,7 +629,6 @@ class DashboardChartData(View):
 
         return JsonResponse(data)
 
-
 # === Menu ==== #
 class CreateMenuView(LoginRequiredMixin, View):
     """
@@ -669,7 +655,6 @@ class CreateMenuView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'success'})
 
         return JsonResponse({'status': 'exists'})
-
 
 # === Category ==== #
 class CreateCategoryView(LoginRequiredMixin, View):
@@ -699,8 +684,6 @@ class CreateCategoryView(LoginRequiredMixin, View):
             'category_id': category.id,
             'category_name': category.name
         })
-
-
 class ToggleCategoryActiveView(LoginRequiredMixin, View):
     """
     ToggleCategoryActiveView
@@ -723,8 +706,6 @@ class ToggleCategoryActiveView(LoginRequiredMixin, View):
         category.active = not category.active
         category.save()
         return JsonResponse({'status': 'success', 'active': category.active})
-
-
 class UpdateCategoryView(LoginRequiredMixin, View):
     """
     UpdateCategoryView
@@ -752,8 +733,6 @@ class UpdateCategoryView(LoginRequiredMixin, View):
         category.name = new_name
         category.save()
         return JsonResponse({'status': 'success', 'name': category.name})
-
-
 class DeleteCategoryView(LoginRequiredMixin, View):
     """
     DeleteCategoryView
@@ -775,8 +754,6 @@ class DeleteCategoryView(LoginRequiredMixin, View):
 
         category.delete()
         return JsonResponse({'status': 'success'})
-
-
 class CategoryElementsView(LoginRequiredMixin, View):
     """
     CategoryElementsView
@@ -802,7 +779,6 @@ class CategoryElementsView(LoginRequiredMixin, View):
             for element in elements
         ]
         return JsonResponse({'elements': data})
-
 
 # === Category Element ==== #
 class CreateCategoryElementView(LoginRequiredMixin, View):
@@ -850,8 +826,6 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
             'element_name': element.name,
             'icon_url': element.icon.url if element.icon else ''
         })
-
-
 class ToggleCategoryElementActiveView(LoginRequiredMixin, View):
     """
     ToggleCategoryElementActiveView
@@ -877,8 +851,6 @@ class ToggleCategoryElementActiveView(LoginRequiredMixin, View):
             'element_id': element.id,
             'active': element.active
         })
-
-
 class UpdateCategoryElementView(LoginRequiredMixin, View):
     """
     UpdateCategoryElementView
@@ -914,8 +886,6 @@ class UpdateCategoryElementView(LoginRequiredMixin, View):
             'cost': str(element.cost),
             'icon_url': element.icon.url if element.icon else ''
         })
-
-
 class DeleteCategoryElementView(LoginRequiredMixin, View):
     """
     DeleteCategoryElementView
@@ -934,7 +904,6 @@ class DeleteCategoryElementView(LoginRequiredMixin, View):
 
         element.delete()
         return JsonResponse({'status': 'success', 'element_id': element_id})
-
 
 # === Worker ==== #
 class CreateWorkerView(LoginRequiredMixin, View):
@@ -1028,8 +997,6 @@ class CreateWorkerView(LoginRequiredMixin, View):
             })
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
-
-
 class ToggleWorkerActiveView(LoginRequiredMixin, View):
     """
     ToggleWorkerActiveView
@@ -1050,8 +1017,6 @@ class ToggleWorkerActiveView(LoginRequiredMixin, View):
         worker.save()
         message = 'Worker disabled' if not worker.active else 'Worker enabled'
         return JsonResponse({'status':'success','message': message})
-
-
 class DeleteWorkerView(LoginRequiredMixin, View):
     """
     DeleteWorkerView
@@ -1074,7 +1039,6 @@ class DeleteWorkerView(LoginRequiredMixin, View):
         profile.delete()
         user.delete()
         return JsonResponse({'status':'success'})
-
 
 # === Map Creator === #
 class SaveMapView(LoginRequiredMixin, View):
@@ -1133,8 +1097,6 @@ class SaveMapView(LoginRequiredMixin, View):
                 # (omitted here for brevity, but use the same inline‐comment style)
 
         return JsonResponse({'status': 'ok'})
-
-
 class CreateFloorView(LoginRequiredMixin, View):
     """
     CreateFloorView
@@ -1176,8 +1138,6 @@ class CreateFloorView(LoginRequiredMixin, View):
             'tables': [],
             'bars': []
         })
-
-
 class GenerateQR(LoginRequiredMixin, View):
     """
     GenerateQR

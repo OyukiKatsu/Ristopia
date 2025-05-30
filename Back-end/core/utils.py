@@ -12,8 +12,6 @@ def make_table_token(table):
     payload = {
         'restaurant_id': table.map.restaurant.id,
         'table_id':      table.id,
-        # optional: 'restaurant_name': table.map.restaurant.name,
-        #           'table_name':      table.name,
     }
     return signing.dumps(
         payload,
