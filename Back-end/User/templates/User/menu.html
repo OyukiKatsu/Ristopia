@@ -111,6 +111,16 @@
            class="border p-2 mb-2 w-full rounded">
     <textarea id="new-element-description" placeholder="Description"
               class="border p-2 mb-2 w-full rounded"></textarea>
+    <select id="new-element-type" class="border p-2 mb-2 w-full rounded">
+      <option value="">-- Select type --</option>
+      <option value="To share">To share</option>
+      <option value="First plate">First plate</option>
+      <option value="Second plate">Second plate</option>
+      <option value="Dessert">Dessert</option>
+      <option value="Drink">Drink</option>
+
+    </select>
+
     <input type="number" id="new-element-price" placeholder="Price"
            class="border p-2 mb-2 w-full rounded">
     <input type="number" id="new-element-cost" placeholder="Cost"
@@ -399,7 +409,7 @@ $('#confirm-edit-category-btn').click(() => {
       $.get(`/user/owner/${ownerId}/menu/category/${catId}/elements/`)
        .done(response => {
          const cards = response.elements.map(element => `
-           <div id="element-${element.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4 overflow-x-auto">
+           <div id="element-${element.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4 overflow-x-auto overflow-y-visible">
              ${element.icon_url
                ? `<img src="${element.icon_url}" class="w-24 h-24 object-cover rounded">`
                : `<div class="w-24 h-24 bg-gray-100 rounded flex items-center justify-center">No Image</div>`
@@ -407,6 +417,7 @@ $('#confirm-edit-category-btn').click(() => {
              <div class="flex-1">
                <p class="font-semibold text-lg">${element.name}</p>
                <p class="text-sm text-gray-600">${element.description}</p>
+               <p class="text-sm text-blue-600">Type: ${element.type}</p>
                <p class="text-sm text-green-600">Price: €${element.price}</p>
                <p class="text-sm text-red-600">Cost: €${element.cost}</p>
              </div>
@@ -502,13 +513,54 @@ $('#confirm-edit-category-btn').click(() => {
         });
 
     // 3-dot toggle
+
+    $(document).click(function() {
+        $('.dropdown').each(function() {
+          const $d        = $(this);
+          const $orig     = $d.data('orig-parent');
+          if ($orig) {
+            $d.appendTo($orig);
+          }
+        }).addClass('hidden');
+    }); 
+
     $(document).on('click', '.three-dots', function(e) {
       e.stopPropagation();
-      const dd = $(this).siblings('.dropdown');
-      $('.dropdown').not(dd).addClass('hidden');
-      dd.toggleClass('hidden');
+      const $button    = $(this);
+      const $dropdown  = $button.siblings('.dropdown');
+
+      $('.dropdown').each(function() {
+        const $d         = $(this);
+        const $orig      = $d.data('orig-parent');
+        if ($orig) {
+          $d.appendTo($orig).addClass('hidden');
+        }
+      });
+
+      if (!$dropdown.hasClass('hidden')) {
+        $dropdown.addClass('hidden');
+        $dropdown.appendTo( $dropdown.data('orig-parent') ); 
+        return;
+      }
+
+      const $origParent = $dropdown.parent();
+      $dropdown.data('orig-parent', $origParent);
+
+      $dropdown.appendTo(document.body).removeClass('hidden');
+
+      const rect     = $button[0].getBoundingClientRect();
+      const dropdownW = $dropdown.outerWidth();
+      const gap      = 4;
+      const leftPos  = window.scrollX + rect.left + (rect.width - dropdownW);
+      const topPos   = window.scrollY + rect.bottom + gap;
+
+      $dropdown.css({
+        position: 'absolute',
+        top:      `${topPos}px`,
+        left:     `${Math.max(leftPos, 0)}px`,
+        zIndex:   9999
+      });
     });
-    $(document).click(() => $('.dropdown').addClass('hidden'));
 
     // Prepare delete
     $(document).on('click', '.delete-element', function() {
@@ -536,10 +588,12 @@ $('#confirm-edit-category-btn').click(() => {
     $(document).on('click', '.edit-element', function() {
       const id = $(this).data('element-id');
       const card  = $(`#element-${id}`);
-      $('#new-element-name').val( card.find('p.font-semibold').text() );
+      $('#new-element-name').val(        card.find('p.font-semibold').text() );
       $('#new-element-description').val( card.find('p.text-gray-600').text() );
-      $('#new-element-price').val(     card.find('p.text-green-600').text().replace(/[^0-9.]/g,'') );
-      $('#new-element-cost').val(      card.find('p.text-red-600').text().replace(/[^0-9.]/g,'') );
+      $('#new-element-price').val(       card.find('p.text-green-600').text().replace(/[^0-9.]/g,'') );
+      $('#new-element-cost').val(        card.find('p.text-red-600').text().replace(/[^0-9.]/g,'') );
+      $('#new-element-type').val(        card.find('p.text-blue-600').text().replace('Type:', '').trim());
+
       $('#new-element-image').val('');
       $('#element-modal')
         .removeClass('hidden')
@@ -557,11 +611,20 @@ $('#confirm-edit-category-btn').click(() => {
         : `/user/owner/${ownerId}/menu/category-element/add/`;
       const data = new FormData();
       if(elementId) data.append('element_id', elementId);
+
+      if (!$('#new-element-type').val())
+      {
+        return toastr.error('Please select a type.');
+      }
+
+
       data.append('category_id', categoryId);
       data.append('name', $('#new-element-name').val());
       data.append('description', $('#new-element-description').val());
       data.append('price', $('#new-element-price').val());
       data.append('cost', $('#new-element-cost').val());
+      data.append('type', $('#new-element-type').val());
+
       const img = $('#new-element-image')[0].files[0];
       if(img) data.append('icon', img);
 
@@ -577,7 +640,7 @@ $('#confirm-edit-category-btn').click(() => {
         } else {
           toastr.error(res.message||'Error.');
         }
-      }).fail(() => toastr.error('Operation failed.'));
+      }).fail(() => toastr.error('Operation failed. Verify that the data submited is correct.'));
     });
 
 

@@ -774,6 +774,7 @@ class CategoryElementsView(LoginRequiredMixin, View):
                 'price': str(element.price),
                 'cost': str(element.cost),
                 'icon_url': element.icon.url if element.icon else '',
+                'type': element.type,
                 'active': element.active,
             }
             for element in elements
@@ -801,6 +802,7 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
         description = request.POST.get('description')
         price       = request.POST.get('price')
         cost        = request.POST.get('cost')
+        plate_type  = request.POST.get('type')
         icon        = request.FILES.get('icon')
 
         category = get_object_or_404(Category, id=category_id)
@@ -810,7 +812,8 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
             'name': name,
             'description': description,
             'price': price,
-            'cost': cost
+            'cost': cost,
+            'type': plate_type,
         }
         if icon:
             element_kwargs['icon'] = icon
@@ -824,7 +827,8 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
             'status': 'success',
             'element_id': element.id,
             'element_name': element.name,
-            'icon_url': element.icon.url if element.icon else ''
+            'icon_url': element.icon.url if element.icon else '',
+            'type': element.type,
         })
 class ToggleCategoryElementActiveView(LoginRequiredMixin, View):
     """
@@ -873,6 +877,8 @@ class UpdateCategoryElementView(LoginRequiredMixin, View):
         element.description = request.POST.get('description', element.description)
         element.price       = request.POST.get('price', element.price)
         element.cost        = request.POST.get('cost', element.cost)
+        element.type        = request.POST.get('type', element.type)
+
         if request.FILES.get('icon'):
             element.icon   = request.FILES['icon']
         element.save()
@@ -884,7 +890,8 @@ class UpdateCategoryElementView(LoginRequiredMixin, View):
             'description': element.description,
             'price': str(element.price),
             'cost': str(element.cost),
-            'icon_url': element.icon.url if element.icon else ''
+            'icon_url': element.icon.url if element.icon else '',
+            'type': element.type,
         })
 class DeleteCategoryElementView(LoginRequiredMixin, View):
     """

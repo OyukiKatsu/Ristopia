@@ -119,6 +119,7 @@ class CategoryElement(models.Model):
     description = models.TextField()
     price = models.DecimalField(max_digits=8, decimal_places=2)
     cost = models.DecimalField(max_digits=8, decimal_places=2)
+    type = models.CharField(max_length=20, choices=[('To share', 'To share'),('First plate', 'First plate'), ('Second plate', 'Second plate'), ('Dessert', 'Dessert'), ('Drink', 'Drink')])
     active = models.BooleanField(default=True)
 
     class Meta:
