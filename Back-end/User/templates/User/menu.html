@@ -104,7 +104,7 @@
 </div>
 
 <!-- Element Modal -->
-<div id="element-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+<div id="element-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center overflow-y-scroll">
   <div class="bg-white p-4 rounded-lg shadow-lg">
     <h3 class="text-lg font-bold mb-2">Add / Edit Element</h3>
     <input type="text" id="new-element-name" placeholder="Item Name"
@@ -126,7 +126,27 @@
     <input type="number" id="new-element-cost" placeholder="Cost"
            class="border p-2 mb-2 w-full rounded">
     <input type="file" id="new-element-image" class="border p-2 mb-2 w-full rounded">
-
+    <div class="mb-2">
+          <p class="font-semibold mb-1">Allergens:</p>
+          <div class="grid grid-cols-4 gap-2">
+          {% for allergen in allergens %}
+                  <label class="flex flex-col items-center cursor-pointer p-1 rounded-lg border hover:bg-gray-100">
+                    {% if allergen.icon %}
+                      <img src="{{ allergen.icon.url }}" alt="{{ allergen.name }}" class="w-8 h-8 mb-1"/>
+                    {% else %}
+                      <div class="w-8 h-8 bg-gray-200 flex items-center justify-center mb-1 text-gray-600 font-bold">
+                        {{ allergen.name|slice:":1" }}
+                      </div>
+                    {% endif %}
+                    <input type="checkbox"
+                          name="allergens"
+                          value="{{ allergen.id }}"
+                          class="form-checkbox h-4 w-4 text-red-600">
+                    <span class="text-[10px] mt-1">{{ allergen.name }}</span>
+                  </label>
+          {% endfor %}
+          </div>
+    </div>
     <button id="save-element-btn" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
     <button id="close-element-modal" class="ml-2 px-4 py-2 rounded">Cancel</button>
   </div>
@@ -409,7 +429,7 @@ $('#confirm-edit-category-btn').click(() => {
       $.get(`/user/owner/${ownerId}/menu/category/${catId}/elements/`)
        .done(response => {
          const cards = response.elements.map(element => `
-           <div id="element-${element.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4 overflow-x-auto overflow-y-visible">
+           <div id="element-${element.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4 overflow-x-auto overflow-y-visible" data-allergens='${JSON.stringify(element.allergens)}'>
              ${element.icon_url
                ? `<img src="${element.icon_url}" class="w-24 h-24 object-cover rounded">`
                : `<div class="w-24 h-24 bg-gray-100 rounded flex items-center justify-center">No Image</div>`
@@ -420,6 +440,24 @@ $('#confirm-edit-category-btn').click(() => {
                <p class="text-sm text-blue-600">Type: ${element.type}</p>
                <p class="text-sm text-green-600">Price: €${element.price}</p>
                <p class="text-sm text-red-600">Cost: €${element.cost}</p>
+              ${element.allergens.length > 0
+                          ? `<div class="flex flex-wrap mt-2 space-x-1">
+                                ${element.allergens.map(a => `
+                                  <div class="w-6 h-6 rounded-full overflow-hidden border">
+                                    ${a.icon_url
+                                      ? `<img src="${a.icon_url}"
+                                              alt="${a.name}"
+                                              title="${a.name}"
+                                              class="object-cover w-full h-full">`
+                                      : `<div class="bg-gray-200 w-full h-full flex items-center justify-center text-xs text-gray-600" title="${a.name}">
+                                          ${a.name.slice(0,1)}
+                                        </div>`
+                                    }
+                            </div>
+                  `).join('')}
+                </div>`
+             : ``
+           }
              </div>
 
              <label class="flex items-center space-x-2 cursor-pointer">
@@ -478,6 +516,7 @@ $('#confirm-edit-category-btn').click(() => {
   //============================================================================
 
 
+  
   //============================================================================
   // Elemnts Logic 
   //============================================================================
@@ -490,6 +529,7 @@ $('#confirm-edit-category-btn').click(() => {
       $('#new-element-price').val('');
       $('#new-element-cost').val('');
       $('#new-element-image').val('');
+       $("input[name='allergens']").prop('checked', false);
       $('#element-modal')
         .removeClass('hidden')
         .find('#save-element-btn')
@@ -587,8 +627,9 @@ $('#confirm-edit-category-btn').click(() => {
 
     // Edit element
     $(document).on('click', '.edit-element', function() {
-      const id = $(this).data('element-id');
-      const card  = $(`#element-${id}`);
+      const id   = $(this).data('element-id');
+      const card = $(`#element-${id}`);
+
       $('#new-element-name').val(        card.find('p.font-semibold').text() );
       $('#new-element-description').val( card.find('p.text-gray-600').text() );
       $('#new-element-price').val(       card.find('p.text-green-600').text().replace(/[^0-9.]/g,'') );
@@ -596,6 +637,15 @@ $('#confirm-edit-category-btn').click(() => {
       $('#new-element-type').val(        card.find('p.text-blue-600').text().replace('Type:', '').trim());
 
       $('#new-element-image').val('');
+
+      $("input[name='allergens']").prop('checked', false);
+
+      const elementAllergens = card.data('allergens') || [];  
+
+      elementAllergens.forEach(a => {
+        $(`input[name='allergens'][value='${a.id}']`).prop('checked', true);
+      });
+
       $('#element-modal')
         .removeClass('hidden')
         .find('#save-element-btn')
@@ -611,6 +661,7 @@ $('#confirm-edit-category-btn').click(() => {
         ? `/user/owner/${ownerId}/menu/category-element/${elementId}/update/`
         : `/user/owner/${ownerId}/menu/category-element/add/`;
       const data = new FormData();
+      const selectedAllergens = [];
       if(elementId) data.append('element_id', elementId);
 
       if (!$('#new-element-type').val())
@@ -628,7 +679,10 @@ $('#confirm-edit-category-btn').click(() => {
 
       const img = $('#new-element-image')[0].files[0];
       if(img) data.append('icon', img);
-
+      $("input[name='allergens']:checked").each(function() {
+          selectedAllergens.push($(this).val());
+        });
+        data.append('allergens', JSON.stringify(selectedAllergens));
       $.ajax({
         url, type:'POST',
         headers: {'X-CSRFToken': csrftoken},

@@ -4,7 +4,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 from core.utils import generate_table_qr
-from core.models import CategoryElement, Profile, Worker, TableOrder, Restaurante, Category, Menu, Map, Table, Bar, TableCell, BarCell
+from core.models import CategoryElement, Profile, Worker, TableOrder, Restaurante, Category, Menu, Map, Table, Bar, TableCell, BarCell, Allergen
 from django.contrib.auth.models import User
 from django.views.generic import TemplateView, View
 from django.urls import reverse
@@ -333,11 +333,12 @@ class MenuView(LoginRequiredMixin, TemplateView):
         profile = self.request.user.get_User_Profile
         restaurant = profile.get_Profile_Restaurantes.first()
         menu = Menu.objects.filter(restaurant=restaurant).first()
-
+        allergens = Allergen.objects.all()
         context.update({
             'profile': profile,
             'restaurant': restaurant,
-            'menu': menu
+            'menu': menu,
+            'allergens': allergens
         })
         return context
 
@@ -758,16 +759,29 @@ class CategoryElementsView(LoginRequiredMixin, View):
     """
     CategoryElementsView
     --------------------
-    Returns JSON list of all elements in a given Category.
+    Returns JSON list of all elements in a given Category, including each element’s allergens.
     """
     def get(self, request, owner_id, category_id):
         """
         - No ownership check needed beyond login.
-        - Serializes each element’s fields into JSON.
+        - Serializes each element’s fields into JSON, plus allergens.
         """
+        if request.user.get_User_Profile.id != int(owner_id):
+            return JsonResponse({'error': "Permission denied."}, status=403)
+        
         elements = CategoryElement.objects.filter(category_id=category_id)
-        data = [
-            {
+
+        data = []
+        for element in elements:
+            el_allergens = []
+            for allergen in element.allergens.all():
+                el_allergens.append({
+                    'id': allergen.id,
+                    'name': allergen.name,
+                    'icon_url': allergen.icon.url if allergen.icon else ''
+                })
+
+            data.append({
                 'id': element.id,
                 'name': element.name,
                 'description': element.description,
@@ -776,9 +790,9 @@ class CategoryElementsView(LoginRequiredMixin, View):
                 'icon_url': element.icon.url if element.icon else '',
                 'type': element.type,
                 'active': element.active,
-            }
-            for element in elements
-        ]
+                'allergens': el_allergens,      
+            })
+
         return JsonResponse({'elements': data})
 
 # === Category Element ==== #
@@ -786,7 +800,7 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
     """
     CreateCategoryElementView
     -------------------------
-    Adds a new item (CategoryElement) under a Category.
+    Adds a new item (CategoryElement) under a Category (and assigns allergens).
     """
     def post(self, request, owner_id, *args, **kwargs):
         """
@@ -803,10 +817,11 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
         price       = request.POST.get('price')
         cost        = request.POST.get('cost')
         plate_type  = request.POST.get('type')
-        icon        = request.FILES.get('icon')
+        icon_file   = request.FILES.get('icon')
 
         category = get_object_or_404(Category, id=category_id)
-        # Create with or without icon
+
+        # Build kwargs for CategoryElement
         element_kwargs = {
             'category': category,
             'name': name,
@@ -815,10 +830,20 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
             'cost': cost,
             'type': plate_type,
         }
-        if icon:
-            element_kwargs['icon'] = icon
+        if icon_file:
+            element_kwargs['icon'] = icon_file
 
         element = CategoryElement.objects.create(**element_kwargs)
+
+        allergens_json = request.POST.get('allergens', '[]')
+        try:
+            allergen_ids = json.loads(allergens_json)
+        except json.JSONDecodeError:
+            allergen_ids = []
+
+        valid_allergens = Allergen.objects.filter(id__in=allergen_ids)
+        element.allergens.set(valid_allergens)
+
         messages.success(
             request,
             f'Success|Item "{name}" added to category "{category.name}".'
@@ -829,6 +854,13 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
             'element_name': element.name,
             'icon_url': element.icon.url if element.icon else '',
             'type': element.type,
+            'allergens': [
+                {
+                    'id': a.id,
+                    'name': a.name,
+                    'icon_url': a.icon.url if a.icon else ''
+                } for a in valid_allergens
+            ]
         })
 class ToggleCategoryElementActiveView(LoginRequiredMixin, View):
     """
@@ -859,7 +891,7 @@ class UpdateCategoryElementView(LoginRequiredMixin, View):
     """
     UpdateCategoryElementView
     -------------------------
-    Updates fields on an existing CategoryElement, including optional icon.
+    Updates fields on an existing CategoryElement, including optional icon and allergens.
     """
     def post(self, request, owner_id, *args, **kwargs):
         """
@@ -869,10 +901,10 @@ class UpdateCategoryElementView(LoginRequiredMixin, View):
         """
         element_id = request.POST.get('element_id')
         element    = get_object_or_404(CategoryElement, id=element_id)
+
         if element.category.menu.restaurant.owner.id != int(owner_id):
             return JsonResponse({'status':'error','msg':'Forbidden'}, status=403)
 
-        # Pull updated fields or default to existing
         element.name        = request.POST.get('name', element.name)
         element.description = request.POST.get('description', element.description)
         element.price       = request.POST.get('price', element.price)
@@ -880,8 +912,18 @@ class UpdateCategoryElementView(LoginRequiredMixin, View):
         element.type        = request.POST.get('type', element.type)
 
         if request.FILES.get('icon'):
-            element.icon   = request.FILES['icon']
+            element.icon = request.FILES['icon']
+
         element.save()
+
+        allergens_json = request.POST.get('allergens', '[]')
+        try:
+            allergen_ids = json.loads(allergens_json)
+        except json.JSONDecodeError:
+            allergen_ids = []
+
+        valid_allergens = Allergen.objects.filter(id__in=allergen_ids)
+        element.allergens.set(valid_allergens)
 
         return JsonResponse({
             'status': 'success',
@@ -892,6 +934,13 @@ class UpdateCategoryElementView(LoginRequiredMixin, View):
             'cost': str(element.cost),
             'icon_url': element.icon.url if element.icon else '',
             'type': element.type,
+            'allergens': [
+                {
+                    'id': a.id,
+                    'name': a.name,
+                    'icon_url': a.icon.url if a.icon else ''
+                } for a in valid_allergens
+            ]
         })
 class DeleteCategoryElementView(LoginRequiredMixin, View):
     """
