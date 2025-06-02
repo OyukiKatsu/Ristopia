@@ -106,7 +106,7 @@
 <!-- Element Modal -->
 <div id="element-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
   <div class="bg-white p-4 rounded-lg shadow-lg">
-    <h3 class="text-lg font-bold mb-2">Add / Edit Item</h3>
+    <h3 class="text-lg font-bold mb-2">Add / Edit Element</h3>
     <input type="text" id="new-element-name" placeholder="Item Name"
            class="border p-2 mb-2 w-full rounded">
     <textarea id="new-element-description" placeholder="Description"
@@ -486,6 +486,7 @@ $('#confirm-edit-category-btn').click(() => {
     $(document).on('click', '#add-element-btn', function() {
       $('#new-element-name').val('');
       $('#new-element-description').val('');
+      $('#new-element-type').val('');
       $('#new-element-price').val('');
       $('#new-element-cost').val('');
       $('#new-element-image').val('');
