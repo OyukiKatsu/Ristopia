@@ -266,14 +266,8 @@ class TableOrdersView(View):
             })
 
         return JsonResponse({'orders': orders_list})
-
 class CategoryElementsView(View):
-    """
-    GET /api/restaurants/<restaurant_id>/menu/categories/<category_id>/elements/
-    Returns JSON { elements: [{id, name, description, price, icon_url}, …] }
-    """
     def get(self, request, restaurant_id, category_id, *args, **kwargs):
-        # ensure category is active and belongs to that restaurant
         get_object_or_404(
             Category,
             pk=category_id,
@@ -286,16 +280,53 @@ class CategoryElementsView(View):
             active=True
         ).values('id', 'name', 'description', 'price', 'icon')
 
+        element_list = list(qs)
+        element_ids = [el['id'] for el in element_list]
+
+        if not element_ids:
+            return JsonResponse({'elements': []})
+
+        through = CategoryElement.allergens.through  # the “through” model
+        rel_qs = through.objects.filter(categoryelement_id__in=element_ids).values(
+            'categoryelement_id', 'allergen_id'
+        )
+
+        element_to_allergen_ids = {}
+        for row in rel_qs:
+            elem_id = row['categoryelement_id']
+            alg_id = row['allergen_id']
+            element_to_allergen_ids.setdefault(elem_id, []).append(alg_id)
+
+        all_allergen_ids = {row['allergen_id'] for row in rel_qs}
+        allergen_qs = Allergen.objects.filter(id__in=all_allergen_ids).values('id', 'name', 'icon')
+        allergen_lookup = {}
+        for alg in allergen_qs:
+            icon_url = alg['icon'] and urljoin(settings.MEDIA_URL, alg['icon']) or None
+            allergen_lookup[alg['id']] = {
+                'name': alg['name'],
+                'icon_url': icon_url
+            }
+
         elements = []
-        for el in qs:
+        for el in element_list:
             icon_path = el.get('icon')
-            icon_url = icon_path and urljoin(settings.MEDIA_URL, icon_path)
-            elements.append({
-                'id': el['id'],
-                'name': el['name'],
-                'description': el['description'],
-                'price': str(el['price']),
-                'icon_url': icon_url,
-            })
+            icon_url = icon_path and urljoin(settings.MEDIA_URL, icon_path) or None
+
+        raw_ids = element_to_allergen_ids.get(el["id"], [])
+        allergens = [
+            allergen_lookup[a_id]
+            for a_id in raw_ids
+            if a_id in allergen_lookup
+        ]
+
+        elements.append({
+            "id":         el["id"],
+            "name":       el["name"],
+            "description":el["description"],
+            "price":      str(el["price"]),
+            "icon_url":   icon_url,
+            "allergens":  allergens,
+        })
 
         return JsonResponse({'elements': elements})
+    
