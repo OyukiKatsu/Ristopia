@@ -158,10 +158,10 @@ class TableOrder(models.Model):
 class OrderState(models.Model):
     table_order = models.ForeignKey(TableOrder, on_delete=models.CASCADE, related_name='get_TableOrder_OrderStates')
     state = models.CharField(max_length=50, choices=[
-        ('Waiting to be cooked', 'Waiting to be cooked'),
-        ('Waiting to be served', 'Waiting to be served'),
-        ('Waiting to be send to cook', 'Waiting to be send to cook'),
-        ('Delivered, Enjoy your meal!', 'Delivered, Enjoy your meal!')
+        ('Waiting to be cooked', 'In the kitchen...'),
+        ('Waiting to be served', 'Waiter is on its way...'),
+        ('Waiting to be send to cook', 'Awaiting confirmation...'),
+        ('Delivered, Enjoy your meal!', 'Delivered, Enjoy!')
     ])
 
     class Meta:

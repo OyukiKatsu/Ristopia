@@ -215,6 +215,58 @@ class CategoriesView(View):
         return JsonResponse({'categories': list(qs)})
 
 
+class TableOrdersView(View):
+    def get(self, request, token, *args, **kwargs):
+        try:
+            payload = signing.loads(
+                token,
+                key=settings.SECRET_KEY,
+                salt='table-token',
+                serializer=signing.JSONSerializer
+            )
+            rest_id  = payload['restaurant_id']
+            table_id = payload['table_id']
+        except signing.BadSignature:
+            return JsonResponse({'error': 'Invalid token'}, status=400)
+
+        table = get_object_or_404(Table, pk=table_id, map__restaurant_id=rest_id)
+
+        qs = (
+            TableOrder.objects
+            .filter(table=table, active=True)
+            .select_related('category_element')
+            .prefetch_related('get_TableOrder_OrderStates')
+            .order_by('date')
+        )
+
+        orders_list = []
+        for to in qs:
+            elem = to.category_element
+            icon_url = elem.icon.url if elem.icon else ''
+            state_obj = to.get_TableOrder_OrderStates.first()
+            state_key = state_obj.state
+            if state_key == 'Waiting to be cooked':
+                state_display = 'In the kitchen...'
+            elif state_key == 'Waiting to be served':
+                state_display = 'Waiter is on its way...'
+            elif state_key == 'Waiting to be send to cook':
+                state_display = 'Awaiting confirmation...'
+            elif state_key == 'Delivered, Enjoy your meal!':
+                state_display = 'Delivered, Enjoy!'
+            else:
+                state_display = state_key
+
+            orders_list.append({
+                'order_id':     to.id,
+                'item_name':    elem.name,
+                'price':        str(elem.price),
+                'state_key':    state_key,
+                'state_display': state_display,
+                'icon_url':     icon_url,
+            })
+
+        return JsonResponse({'orders': orders_list})
+
 class CategoryElementsView(View):
     """
     GET /api/restaurants/<restaurant_id>/menu/categories/<category_id>/elements/

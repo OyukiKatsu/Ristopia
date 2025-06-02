@@ -62,6 +62,7 @@ urlpatterns = [
             path('owner/<int:owner_id>/workers/create/', CreateWorkerView.as_view(), name='create_worker'),
             path('owner/<int:owner_id>/workers/<int:worker_id>/toggle/', ToggleWorkerActiveView.as_view(), name='toggle_worker_active'),
             path('owner/<int:owner_id>/workers/<int:worker_id>/delete/', DeleteWorkerView.as_view(), name='delete_worker'),
+                
                 # === Map Creator ==== #
             path('owner/<int:owner_id>/map-creator/save', SaveMapView.as_view(), name='save_map'),
             path('owner/<int:owner_id>/map-creator/floor/create', CreateFloorView.as_view(), name='create_floor'),
