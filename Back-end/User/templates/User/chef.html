@@ -31,7 +31,7 @@
   </div>
 
   <script>
-    const API_PENDING = "{% url 'orders_pending' restaurant_id=restaurantID %}";
+    const API_PENDING = "{% url 'restaurant:orders_pending' restaurant_id=restaurantID %}";
     const API_COMPLETE = id => `/restaurant/{{ restaurantID }}/orders/${id}/complete/`;
 
     const { createApp } = Vue;

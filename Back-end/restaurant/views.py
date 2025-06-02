@@ -87,7 +87,7 @@ class CompleteOrderView(LoginRequiredMixin, View):
         if orderState.state != 'Waiting to be cooked':
             return JsonResponse({'error': 'Order not in "Waiting to be cooked".'}, status=400)
         
-        orderState.state = 'Waiting to be delivered'
+        orderState.state = 'Waiting to be served'
         orderState.save()
         
         return JsonResponse({'success': True})
