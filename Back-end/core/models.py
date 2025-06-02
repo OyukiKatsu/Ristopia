@@ -154,6 +154,7 @@ class TableOrder(models.Model):
 
     def __str__(self):
         return "Ordered " + self.category_element.name + " for - " + self.table.name
+
 # Order State
 class OrderState(models.Model):
     table_order = models.ForeignKey(TableOrder, on_delete=models.CASCADE, related_name='get_TableOrder_OrderStates')

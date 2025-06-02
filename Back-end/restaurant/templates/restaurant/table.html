@@ -181,33 +181,32 @@
   </div>
 
 
-  <!-- EXISTING ORDERS MODAL -->
+ <!-- EXISTING ORDERS MODAL -->
   <div
     v-if="showExistingOrdersModal"
     @click.self="showExistingOrdersModal = false"
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40"
   >
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6 ">
-      <h3 class="text-xl font-semibold mb-4">My Order</h3>
-          <div
-      class="bg-white rounded-lg w-full max-w-md p-6 overflow-y-auto"
-      style="max-height: 90vh;"
-    >
-      
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+      <h3 class="text-xl font-semibold mb-4">My Orders</h3>
+
+      <!-- If no existing orders -->
       <p v-if="existingOrders.length === 0" class="text-gray-500 mb-4">
         No orders found.
       </p>
 
+      <!-- List each saved order -->
       <div
         v-for="ord in existingOrders"
         :key="ord.order_id"
         class="mb-4 flex items-center space-x-3"
       >
+        <!-- 1) Item image -->
         <img
           v-if="ord.icon_url"
           :src="ord.icon_url"
           class="w-12 h-12 rounded object-cover"
-        >
+        />
         <div
           v-else
           class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs"
@@ -215,24 +214,43 @@
           No Image
         </div>
 
+        <!-- 2) Name + price -->
         <div class="flex-1">
           <h4 class="font-medium">[[ ord.item_name ]]</h4>
           <p class="text-sm text-gray-600">€[[ ord.price ]]</p>
         </div>
 
-        <span
-          class="text-sm font-medium whitespace-nowrap"
-          :class="{
-            'text-orange-500': ord.state_key === 'Waiting to be cooked',
-            'text-blue-500':   ord.state_key === 'Waiting to be served',
-            'text-gray-500':   ord.state_key === 'Waiting to be send to cook',
-            'text-green-500':  ord.state_key === 'Delivered, Enjoy your meal!'
-          }"
-        >
-          [[ ord.state_display ]]
-        </span>
+        <!-- 3) State with color + optional bounce animation -->
+        <div class="flex-shrink-0">
+          <!-- Animate for “Waiting to be cooked” or “Waiting to be served” -->
+          <template v-if="ord.state_key === 'Waiting to be cooked' || ord.state_key === 'Waiting to be served'">
+            <div
+              class="bounce-text"
+              :class="{
+                'text-orange-500': ord.state_key === 'Waiting to be cooked',
+                'text-blue-500':   ord.state_key === 'Waiting to be served'
+              }"
+            >
+              <span v-for="(ch, idx) in ord.state_display.split('')" :key="idx">[[ ch ]]</span>
+            </div>
+          </template>
+
+          <!-- Plain text for the other two states -->
+          <template v-else>
+            <span
+              class="text-sm font-medium whitespace-nowrap"
+              :class="{
+                'text-gray-500':   ord.state_key === 'Waiting to be send to cook',
+                'text-green-500':  ord.state_key === 'Delivered, Enjoy your meal!'
+              }"
+            >
+              [[ ord.state_display ]]
+            </span>
+          </template>
+        </div>
       </div>
 
+      <!-- TOTAL at bottom -->
       <div class="border-t pt-4 mt-4 text-right font-semibold text-lg">
         TOTAL: €[[ totalAmount ]]
       </div>
@@ -247,8 +265,8 @@
         </button>
       </div>
     </div>
-    </div>
   </div>
+
 
 
   <!-- AUTH CODE MODAL -->

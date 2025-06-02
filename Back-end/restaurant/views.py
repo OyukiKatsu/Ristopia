@@ -250,7 +250,7 @@ class TableOrdersView(View):
             elif state_key == 'Waiting to be served':
                 state_display = 'Waiter is on its way...'
             elif state_key == 'Waiting to be send to cook':
-                state_display = 'Awaiting confirmation...'
+                state_display = 'Marching...'
             elif state_key == 'Delivered, Enjoy your meal!':
                 state_display = 'Delivered, Enjoy!'
             else:

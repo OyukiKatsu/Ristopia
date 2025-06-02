@@ -51,6 +51,73 @@ body {
   -ms-overflow-style: none;  
   scrollbar-width: none; 
 }
+  :root {
+    --single‐bounce‐duration: 0.6s;      
+    --per‐letter‐delay:         0.05s;   
+    --max‐letters:              20;     
+    --wave‐duration: calc(
+      ( (var(--max‐letters) - 1) * var(--per‐letter‐delay) )
+      + var(--single‐bounce‐duration)
+    );
+  }
+
+  .bounce-text {
+    display: inline-flex;
+    gap: 2px;               
+    line-height: 1;         
+  }
+
+  .bounce-text span {
+    display: inline-block;
+    animation-name: bounceWave;
+    animation-duration: var(--wave‐duration);
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+  }
+
+  .bounce-text span:nth-child(1)  { animation-delay: calc(0 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(2)  { animation-delay: calc(1 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(3)  { animation-delay: calc(2 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(4)  { animation-delay: calc(3 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(5)  { animation-delay: calc(4 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(6)  { animation-delay: calc(5 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(7)  { animation-delay: calc(6 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(8)  { animation-delay: calc(7 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(9)  { animation-delay: calc(8 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(10) { animation-delay: calc(9 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(11) { animation-delay: calc(10 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(12) { animation-delay: calc(11 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(13) { animation-delay: calc(12 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(14) { animation-delay: calc(13 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(15) { animation-delay: calc(14 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(16) { animation-delay: calc(15 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(17) { animation-delay: calc(16 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(18) { animation-delay: calc(17 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(19) { animation-delay: calc(18 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(20) { animation-delay: calc(19 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(21) { animation-delay: calc(20 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(22) { animation-delay: calc(21 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(23) { animation-delay: calc(22 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(24) { animation-delay: calc(23 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(25) { animation-delay: calc(24 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(26) { animation-delay: calc(25 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(27) { animation-delay: calc(26 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(28) { animation-delay: calc(27 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(29) { animation-delay: calc(28 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(30) { animation-delay: calc(29 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(31) { animation-delay: calc(30 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(32) { animation-delay: calc(31 * var(--per‐letter‐delay)); }
+
+
+  @keyframes bounceWave {
+    0%, 19.35%, 100% {
+      transform: translateY(0); 
+    }
+    9.675% {
+      transform: translateY(-10px);
+    }
+  }
+
 </style>
 
 <script>
