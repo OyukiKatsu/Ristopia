@@ -120,7 +120,10 @@ class CategoryElement(models.Model):
     price = models.DecimalField(max_digits=8, decimal_places=2)
     cost = models.DecimalField(max_digits=8, decimal_places=2)
     type = models.CharField(max_length=20, choices=[('To share', 'To share'),('First plate', 'First plate'), ('Second plate', 'Second plate'), ('Dessert', 'Dessert'), ('Drink', 'Drink')])
+    allergens = models.ManyToManyField('Allergen', blank=True, related_name='get_Allergen_Category_Elements')
+    
     active = models.BooleanField(default=True)
+
 
     class Meta:
         db_table = 'CategoryElement'
@@ -170,3 +173,15 @@ class OrderState(models.Model):
 
     def __str__(self):
         return f"{self.table_order.category_element.name} - {self.state} - {self.table_order.table.name}"
+
+class Allergen(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    icon = models.ImageField(upload_to='allergen_icons/', null=True, blank=True)
+
+    class Meta:
+        db_table = 'Allergen'
+        verbose_name = 'Allergen'
+        verbose_name_plural = 'Allergens'
+
+    def __str__(self):
+        return self.name
