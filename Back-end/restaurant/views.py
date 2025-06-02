@@ -1,3 +1,4 @@
+import json
 from urllib.parse import urljoin
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
@@ -9,7 +10,7 @@ from TFG import settings
 from django.core.exceptions import SuspiciousOperation
 from django.core import signing
 from django.contrib.auth.mixins import LoginRequiredMixin
-
+from django.utils import timezone
 
 class TableView(TemplateView):
     template_name = 'restaurant/table.html'
@@ -131,8 +132,74 @@ class AuthCodeView(View):
 
 
 
+class OrderView(View):
+    def post(self, request, token, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            items = data.get('items', [])
+            if not isinstance(items, list):
+                raise ValueError()
+        except Exception:
+            return JsonResponse({'ok': False, 'error': 'Invalid JSON or missing items'}, status=400)
+
+        try:
+            payload = signing.loads(
+                token,
+                key=settings.SECRET_KEY,
+                salt='table-token',
+                serializer=signing.JSONSerializer
+            )
+            rest_id  = payload['restaurant_id']
+            table_id = payload['table_id']
+        except signing.BadSignature:
+            return JsonResponse({'ok': False, 'error': 'Bad token'}, status=400)
+
+        table = get_object_or_404(Table, pk=table_id, map__restaurant_id=rest_id)
+
+        now = timezone.now()
+        created_any = False
+
+        for entry in items:
+            element_id = entry.get('element_id')
+            qty        = entry.get('quantity')
+
+            if not isinstance(element_id, int) or not isinstance(qty, int) or qty < 1:
+                continue
+
+            try:
+                cat_el = CategoryElement.objects.get(
+                    pk=element_id,
+                    active=True,
+                    category__menu__restaurant_id=rest_id
+                )
+            except CategoryElement.DoesNotExist:
+                continue
+
+            if cat_el.type == 'Drink':
+                initial_state = 'Waiting to be served'
+            elif cat_el.type in ['To share', 'First plate']:
+                initial_state = 'Waiting to be cooked'
+            elif cat_el.type in ['Second plate', 'Dessert']:
+                initial_state = 'Waiting to be send to cook'
 
 
+            for _ in range(qty):
+                to = TableOrder.objects.create(
+                    table=table,
+                    category_element=cat_el,
+                    date=now,
+                    active=True
+                )
+                OrderState.objects.create(
+                    table_order=to,
+                    state=initial_state
+                )
+                created_any = True
+
+        if not created_any:
+            return JsonResponse({'ok': False, 'error': 'No valid items to order.'}, status=400)
+
+        return JsonResponse({'ok': True})
 
 class CategoriesView(View):
     """

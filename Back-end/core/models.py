@@ -159,11 +159,13 @@ class OrderState(models.Model):
     table_order = models.ForeignKey(TableOrder, on_delete=models.CASCADE, related_name='get_TableOrder_OrderStates')
     state = models.CharField(max_length=50, choices=[
         ('Waiting to be cooked', 'Waiting to be cooked'),
-        ('Waiting to be delivered', 'Waiting to be delivered'),
+        ('Waiting to be served', 'Waiting to be served'),
+        ('Waiting to be send to cook', 'Waiting to be send to cook'),
+        ('Delivered, Enjoy your meal!', 'Delivered, Enjoy your meal!')
     ])
 
     class Meta:
         db_table = 'OrderState'
 
     def __str__(self):
-        return f"Tabele order - {self.table_order.table.name} - {self.state}"
+        return f"{self.table_order.category_element.name} - {self.state} - {self.table_order.table.name}"

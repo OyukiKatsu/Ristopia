@@ -5,27 +5,24 @@
 <div id="table-app" class="min-h-screen bg-yellow-200 flex flex-col">
 
   <!-- Header with Auth Button -->
-    <header class="bg-white shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+  <header class="bg-white shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
     <div class="flex items-center mb-2 sm:mb-0">
-        {% if restaurant.icon %}
+      {% if restaurant.icon %}
         <img src="{{ restaurant.icon.url }}"
-            alt="{{ restaurant.name }}"
-            class="w-10 h-10 rounded-full mr-3 object-cover">
-        {% endif %}
-        <h1 class="text-xl font-bold">{{ restaurant.name }}</h1>
+             alt="{{ restaurant.name }}"
+             class="w-10 h-10 rounded-full mr-3 object-cover">
+      {% endif %}
+      <h1 class="text-xl font-bold">{{ restaurant.name }}</h1>
     </div>
 
     <button
-        @click="authenticated ? showYourCode() : openAuthModal()"
-        class="self-end sm:self-auto px-2 py-1 rounded-full text-xs sm:text-sm font-medium
-            bg-yellow-400 text-white hover:bg-yellow-500"
+      @click="authenticated ? showYourCode() : openAuthModal()"
+      class="self-end sm:self-auto px-2 py-1 rounded-full text-xs sm:text-sm font-medium
+             bg-yellow-400 text-white hover:bg-yellow-500"
     >
-        [[ authenticated ? 'View Code' : 'Authenticate Here' ]]
+      [[ authenticated ? 'View Code' : 'Authenticate Here' ]]
     </button>
-    </header>
-
-
-
+  </header>
 
   <!-- Category Bar -->
   <nav class="bg-yellow-100 overflow-x-auto whitespace-no-wrap p-2">
@@ -48,7 +45,7 @@
     </transition-group>
   </nav>
 
-  <!-- Elements -->
+  <!-- Elements Grid (tappable cards) -->
   <main class="flex-1 overflow-y-auto p-4">
     <transition-group tag="div" name="item" class="space-y-4"
       enter-active-class="animate__animated animate__fadeInUp"
@@ -57,37 +54,143 @@
       <div
         v-for="item in elements"
         :key="item.id"
-        class="bg-white rounded-lg shadow p-4 flex items-start space-x-3"
+        class="bg-white rounded-lg shadow p-4 flex items-start space-x-3 cursor-pointer"
+        @click="addToOrder(item)"
       >
         <div class="flex-shrink-0">
-          <img v-if="item.icon_url" :src="item.icon_url"
-               class="w-20 h-20 rounded object-cover">
-          <div v-else
-               class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs">
+          <img
+            v-if="item.icon_url"
+            :src="item.icon_url"
+            class="w-20 h-20 rounded object-cover"
+          >
+          <div
+            v-else
+            class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs"
+          >
             No Image
           </div>
         </div>
         <div class="flex-1">
           <h2 class="font-semibold text-base">[[ item.name ]]</h2>
-          <p class="text-sm text-gray-600 mt-1 line-clamp-2">
-            [[ item.description ]]
-          </p>
-          <p class="text-sm text-green-600 font-medium mt-2">
-            €[[ item.price ]]
-          </p>
+          <p class="text-sm text-gray-600 mt-1 line-clamp-2">[[ item.description ]]</p>
+          <p class="text-sm text-green-600 font-medium mt-2">€[[ item.price ]]</p>
+        </div>
+        <div class="flex items-center text-gray-400">
+          <!-- Plus icon to indicate “tap to add” -->
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
         </div>
       </div>
     </transition-group>
-    <p v-if="elements.length===0" class="text-center text-gray-500 mt-10">
+
+    <p v-if="elements.length === 0" class="text-center text-gray-500 mt-10">
       No items available in this category.
     </p>
   </main>
 
-  <!-- AUTH CODE MODAL -->
+  <!-- “View Order” Button (only when orderItems not empty) -->
+  <button
+    v-if="orderItems.length > 0"
+    @click="showOrderModal = true"
+    class="fixed bottom-4 left-1/2 transform -translate-x-1/2
+           bg-green-500 text-white px-6 py-3 rounded-full shadow-lg
+           flex items-center space-x-2 z-50"
+  >
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.2 6m1.2-6l1.4 6m4.6-6v6m4-6l1.4 6m-1.4-6H7"/>
+    </svg>
+    <span>View Order ([[ groupedOrder.length ]])</span>
+  </button>
+
+  <!-- ORDER SUMMARY MODAL -->
+  <div
+    v-if="showOrderModal"
+    @click.self="showOrderModal = false"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40"
+  >
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+      <h3 class="text-xl font-semibold mb-4">Your Order</h3>
+
+      <p v-if="groupedOrder.length === 0" class="text-gray-500 mb-4">
+        You haven’t selected any dishes yet.
+      </p>
+
+      <div v-for="entry in groupedOrder" :key="entry.item.id" class="mb-4 flex items-center">
+        <img
+          v-if="entry.item.icon_url"
+          :src="entry.item.icon_url"
+          class="w-12 h-12 rounded object-cover mr-3"
+        >
+        <div
+          v-else
+          class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs mr-3"
+        >
+          No Image
+        </div>
+        <div class="flex-1">
+          <h4 class="font-medium">[[ entry.item.name ]]</h4>
+          <p class="text-sm text-gray-600">€[[ entry.item.price ]] each</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <!-- Decrement quantity -->
+          <button
+            @click="decrement(entry.item.id)"
+            class="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full"
+          >
+            -
+          </button>
+          <span>[[ entry.qty ]]</span>
+          <!-- Increment quantity -->
+          <button
+            @click="increment(entry.item.id)"
+            class="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full"
+          >
+            +
+          </button>
+          <!-- Remove all -->
+          <button
+            @click="removeEntire(entry.item.id)"
+            class="ml-2 text-red-500 hover:text-red-700"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-between items-center">
+        <button
+          @click="showOrderModal = false"
+          class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+        >
+          Close
+        </button>
+
+        <!-- Only if authenticated -->
+        <button
+          v-if="authenticated"
+          @click="confirmOrder"
+          class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600"
+        >
+          Confirm Order
+        </button>
+        <span
+          v-else
+          class="text-sm italic text-gray-500"
+        >
+          Authenticate to order
+        </span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- AUTH CODE MODAL  -->
   <div
     v-if="showAuth"
     @click.self="showAuth=false; authError=null"
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-30"
   >
     <div class="bg-white rounded-lg shadow-lg w-full max-w-sm p-6">
       <h3 class="text-lg font-semibold mb-4">Enter 5-char Code</h3>
@@ -109,11 +212,11 @@
     </div>
   </div>
 
-  <!-- VIEW CODE MODAL -->
+  <!-- VIEW CODE MODAL  -->
   <div
     v-if="showCode"
     @click.self="showCode=false"
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-30"
   >
     <div class="bg-white rounded-lg shadow-lg w-full max-w-xs p-6 text-center">
       <h3 class="font-semibold mb-4">Your Table Code</h3>
@@ -127,6 +230,7 @@
 
 </div>
 
+
 <script>
   const { createApp } = Vue;
 
@@ -134,17 +238,37 @@
     delimiters: ['[[',']]'],
     data() {
       return {
-        categories: [], elements: [], selected: null,
-        showAuth:false, showCode:false,
-        authInput:'', authError:null,
-        authenticated:false, authCode:'',
+        categories: [], 
+        elements: [], 
+        selected: null,
+
+        showAuth: false,
+        showCode: false,
+        authInput: '', 
+        authError: null,
+        authenticated: false, 
+        authCode: '',
+
+        orderItems: [],       
+        showOrderModal: false 
+      }
+    },
+    computed: {
+      groupedOrder() {
+        const map = {};
+        for (const it of this.orderItems) {
+          if (!map[it.id]) {
+            map[it.id] = { item: it, qty: 0 };
+          }
+          map[it.id].qty++;
+        }
+        return Object.values(map);
       }
     },
     methods: {
       getCSRFToken() {
-            return this.getCookie('csrftoken');
-        },
-      // helper to read/write cookie
+        return this.getCookie('csrftoken');
+      },
       getCookie(name) {
         return document.cookie.split('; ').reduce((r,v)=>
           v.startsWith(name+'=') ? v.split('=')[1] : r, ''
@@ -154,78 +278,129 @@
         document.cookie = `${name}=${val}; path=/;`;
       },
 
-      // 1) on load, check if cookie exists and try auto-auth
-    tryRestoreAuth() {
+      tryRestoreAuth() {
         const key = 'table_auth';
         const code = this.getCookie(key);
         if (!code) return;
 
-        // use current path + 'authenticate/' to resue the encripted url
-        fetch(window.location.pathname + 'authenticate/',
-        { method:'POST',
-        headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken':  this.getCSRFToken()
-        },
-            body: JSON.stringify({ code })
-        }
-        )
-        .then(r=>r.json())
-        .then(json=>{
-        if (json.ok) {
+        fetch(window.location.pathname + 'authenticate/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': this.getCSRFToken()
+          },
+          body: JSON.stringify({ code })
+        })
+        .then(r => r.json())
+        .then(json => {
+          if (json.ok) {
             this.authenticated = true;
             this.authCode      = code;
-        } else {
-        this.setCookie(key,''); // wipe cookie if its incorrect
-        }
+          } else {
+            this.setCookie(key, '');
+          }
         });
-    },
-      // 2) Clicks Authenticate Here
-      openAuthModal() {
-        this.authInput=''; this.authError=null;
-        this.showAuth = true;
       },
 
-        // 3) submit code
-        submitAuth() {
-            const code = this.authInput.trim();
-            if (code.length!==5) {
-            this.authError = 'Must be 5 characters';
-            return;
-            }
+      openAuthModal() {
+        this.authInput = '';
+        this.authError = null;
+        this.showAuth  = true;
+      },
 
-            fetch(window.location.pathname + 'authenticate/',
-            { method:'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken':  this.getCSRFToken()
-            },
-                body: JSON.stringify({ code })
-            }
-            )
-            .then(r=>r.json())
-            .then(json=>{
-            if (json.ok) {
-                this.authenticated = true;
-                this.authCode      = code;
+      submitAuth() {
+        const code = this.authInput.trim();
+        if (code.length !== 5) {
+          this.authError = 'Must be 5 characters';
+          return;
+        }
+        fetch(window.location.pathname + 'authenticate/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': this.getCSRFToken()
+          },
+          body: JSON.stringify({ code })
+        })
+        .then(r => r.json())
+        .then(json => {
+          if (json.ok) {
+            this.authenticated = true;
+            this.authCode      = code;
             this.setCookie('table_auth', code);
-                this.showAuth = false;
-            } else {
-                this.authError = json.error || 'Wrong code';
-            }
-            })
-            .catch(()=>{
-            this.authError = 'Network error';
-            });
-        },
+            this.showAuth      = false;
+          } else {
+            this.authError = json.error || 'Wrong code';
+          }
+        })
+        .catch(() => {
+          this.authError = 'Network error';
+        });
+      },
 
-        // 4) view the stored code
-        showYourCode() {
-            this.showCode = true;
-        },
+      showYourCode() {
+        this.showCode = true;
+      },
 
 
-    // Others feth
+      addToOrder(item) {
+        this.orderItems.push(item);
+      },
+
+      increment(itemId) {
+        const found = this.elements.find(el => el.id === itemId);
+        if (found) {
+          this.orderItems.push(found);
+        }
+      },
+
+      decrement(itemId) {
+        const idx = this.orderItems.findIndex(it => it.id === itemId);
+        if (idx !== -1) {
+          this.orderItems.splice(idx, 1);
+        }
+      },
+
+      removeEntire(itemId) {
+        this.orderItems = this.orderItems.filter(it => it.id !== itemId);
+      },
+
+     async confirmOrder() {
+       const payload = this.groupedOrder.map(entry => ({
+         element_id: entry.item.id,
+         quantity:   entry.qty
+       }));
+
+       try {
+         const response = await fetch(
+           window.location.pathname + 'order/',
+           {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+               'X-CSRFToken':   this.getCSRFToken()
+             },
+             body: JSON.stringify({ items: payload })
+           }
+         );
+
+         const json = await response.json();
+         if (response.ok && json.ok) {
+           this.orderItems = [];
+           this.showOrderModal = false;
+           toastr.success("Order sent successfully");
+         } else {
+           const err = json.error || 'Order failed.';
+           toastr.error(err);
+         }
+       } catch (err) {
+         console.error(err);
+         toastr.error('Network error');
+       }
+     },
+    
+
+
       fetchCategories() {
         fetch(`/restaurant/{{ restaurant.id }}/menu/categories/`)
           .then(r => r.json())
@@ -259,10 +434,9 @@
 
     mounted() {
       this.tryRestoreAuth();
-      // now load your menu as before
       this.fetchCategories();
-      this.$nextTick(()=>this.fetchElements());
-      setInterval(()=>{
+      this.$nextTick(() => this.fetchElements());
+      setInterval(() => {
         this.fetchCategories();
         this.fetchElements();
       }, 1000);
