@@ -121,7 +121,7 @@ class CategoryElement(models.Model):
     cost = models.DecimalField(max_digits=8, decimal_places=2)
     type = models.CharField(max_length=20, choices=[('To share', 'To share'),('First plate', 'First plate'), ('Second plate', 'Second plate'), ('Dessert', 'Dessert'), ('Drink', 'Drink')])
     allergens = models.ManyToManyField('Allergen', blank=True, related_name='get_Allergen_Category_Elements')
-    
+    recipe = models.TextField()
     active = models.BooleanField(default=True)
 
 

@@ -785,6 +785,7 @@ class CategoryElementsView(LoginRequiredMixin, View):
                 'id': element.id,
                 'name': element.name,
                 'description': element.description,
+                'recipe': element.recipe,
                 'price': str(element.price),
                 'cost': str(element.cost),
                 'icon_url': element.icon.url if element.icon else '',
@@ -814,6 +815,7 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
         category_id = request.POST.get('category_id')
         name        = request.POST.get('name')
         description = request.POST.get('description')
+        recipe      = request.POST.get('recipe', '') 
         price       = request.POST.get('price')
         cost        = request.POST.get('cost')
         plate_type  = request.POST.get('type')
@@ -826,6 +828,7 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
             'category': category,
             'name': name,
             'description': description,
+            'recipe': recipe,
             'price': price,
             'cost': cost,
             'type': plate_type,
@@ -854,6 +857,7 @@ class CreateCategoryElementView(LoginRequiredMixin, View):
             'element_name': element.name,
             'icon_url': element.icon.url if element.icon else '',
             'type': element.type,
+            'recipe': element.recipe,
             'allergens': [
                 {
                     'id': a.id,
@@ -907,6 +911,7 @@ class UpdateCategoryElementView(LoginRequiredMixin, View):
 
         element.name        = request.POST.get('name', element.name)
         element.description = request.POST.get('description', element.description)
+        element.recipe      = request.POST.get('recipe', element.recipe)
         element.price       = request.POST.get('price', element.price)
         element.cost        = request.POST.get('cost', element.cost)
         element.type        = request.POST.get('type', element.type)
@@ -930,6 +935,7 @@ class UpdateCategoryElementView(LoginRequiredMixin, View):
             'element_id': element.id,
             'name': element.name,
             'description': element.description,
+            'recipe': element.recipe,
             'price': str(element.price),
             'cost': str(element.cost),
             'icon_url': element.icon.url if element.icon else '',

@@ -12,6 +12,10 @@ from django.core import signing
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 
+
+# ====== Dysplay Pages ====== #
+
+# ====== Tables ====== #
 class TableView(TemplateView):
     template_name = 'restaurant/table.html'
 
@@ -48,53 +52,10 @@ class TableView(TemplateView):
             'categories':  categories,
         })
 
-# ====== Orders ====== #
-class PendingOrdersView(LoginRequiredMixin, View):
-    def get(self, request, restaurant_id, *args, **kwargs):
-        worker = request.user.get_User_Profile.get_Profile_Workers.first()
-        restaurant = get_object_or_404(Restaurante, pk=restaurant_id)
-        if worker.type != 'Chef' or worker.restaurant != restaurant or worker.active == False:
-            return JsonResponse({'error': 'Access denied.'}, status=403)
-        
-        pendingOrders = []
-        restaurant_table_orders = TableOrder.objects.filter(table__map__restaurant=restaurant, active=True).order_by('date')
 
-        
-        for tableOrder in restaurant_table_orders:
-            order_state = tableOrder.get_TableOrder_OrderStates.first()
-            if order_state.state == 'Waiting to be cooked':
-                image_url = tableOrder.category_element.icon.url
-                pendingOrders.append({
-                    'id': tableOrder.id,
-                    'table_name': tableOrder.table.name,
-                    'element_name': tableOrder.category_element.name,
-                    'image_url': image_url,
-                    'ordered_at': tableOrder.date.isoformat(),
-                })
-        return JsonResponse({'orders': pendingOrders})
-class CompleteOrderView(LoginRequiredMixin, View):
-    def post(self, request, restaurant_id, pk, *args, **kwargs):
-        worker = request.user.get_User_Profile.get_Profile_Workers.first()
-        restaurant = get_object_or_404(Restaurante, pk=restaurant_id)
-        if worker.type != 'Chef' or worker.restaurant != restaurant or worker.active == False:
-            return JsonResponse({'error': 'Access denied.'}, status=403)        
-        try:
-            tableOrder = TableOrder.objects.get(pk=pk, active=True)
-        except TableOrder.DoesNotExist:
-            return JsonResponse({'error': 'Order not found.'}, status=404)
-        
-        orderState = tableOrder.get_TableOrder_OrderStates.first()
-        if orderState.state != 'Waiting to be cooked':
-            return JsonResponse({'error': 'Order not in "Waiting to be cooked".'}, status=400)
-        
-        orderState.state = 'Waiting to be served'
-        orderState.save()
-        
-        return JsonResponse({'success': True})
-    
+# ========== "APIs" =========== #
 
-
-
+# ====== Tables ====== #
 class AuthCodeView(View):
     """
     POST /restaurant/table/<token>/authenticate/
@@ -129,9 +90,6 @@ class AuthCodeView(View):
             'table_name': table.name,
             'code':       code
         })
-
-
-
 class OrderView(View):
     def post(self, request, token, *args, **kwargs):
         try:
@@ -200,21 +158,6 @@ class OrderView(View):
             return JsonResponse({'ok': False, 'error': 'No valid items to order.'}, status=400)
 
         return JsonResponse({'ok': True})
-
-class CategoriesView(View):
-    """
-    GET /api/restaurants/<restaurant_id>/menu/categories/
-    Returns JSON { categories: [{id, name}, …] }
-    """
-    def get(self, request, restaurant_id, *args, **kwargs):
-        qs = Category.objects.filter(
-            menu__restaurant_id=restaurant_id,
-            active=True
-        ).values('id', 'name')
-
-        return JsonResponse({'categories': list(qs)})
-
-
 class TableOrdersView(View):
     def get(self, request, token, *args, **kwargs):
         try:
@@ -266,6 +209,8 @@ class TableOrdersView(View):
             })
 
         return JsonResponse({'orders': orders_list})
+
+# ====== Menu ====== #
 class CategoryElementsView(View):
     def get(self, request, restaurant_id, category_id, *args, **kwargs):
         get_object_or_404(
@@ -329,4 +274,60 @@ class CategoryElementsView(View):
         })
 
         return JsonResponse({'elements': elements})
+class CategoriesView(View):
+    """
+    GET /api/restaurants/<restaurant_id>/menu/categories/
+    Returns JSON { categories: [{id, name}, …] }
+    """
+    def get(self, request, restaurant_id, *args, **kwargs):
+        qs = Category.objects.filter(
+            menu__restaurant_id=restaurant_id,
+            active=True
+        ).values('id', 'name')
+
+        return JsonResponse({'categories': list(qs)})
+
+# ====== Orders ====== #
+class PendingOrdersView(LoginRequiredMixin, View):
+    def get(self, request, restaurant_id, *args, **kwargs):
+        worker = request.user.get_User_Profile.get_Profile_Workers.first()
+        restaurant = get_object_or_404(Restaurante, pk=restaurant_id)
+        if worker.type != 'Chef' or worker.restaurant != restaurant or worker.active == False:
+            return JsonResponse({'error': 'Access denied.'}, status=403)
+        
+        pendingOrders = []
+        restaurant_table_orders = TableOrder.objects.filter(table__map__restaurant=restaurant, active=True).order_by('date')
+
+        
+        for tableOrder in restaurant_table_orders:
+            order_state = tableOrder.get_TableOrder_OrderStates.first()
+            if order_state.state == 'Waiting to be cooked':
+                image_url = tableOrder.category_element.icon.url
+                pendingOrders.append({
+                    'id': tableOrder.id,
+                    'table_name': tableOrder.table.name,
+                    'element_name': tableOrder.category_element.name,
+                    'image_url': image_url,
+                    'ordered_at': tableOrder.date.isoformat(),
+                })
+        return JsonResponse({'orders': pendingOrders})
+class CompleteOrderView(LoginRequiredMixin, View):
+    def post(self, request, restaurant_id, pk, *args, **kwargs):
+        worker = request.user.get_User_Profile.get_Profile_Workers.first()
+        restaurant = get_object_or_404(Restaurante, pk=restaurant_id)
+        if worker.type != 'Chef' or worker.restaurant != restaurant or worker.active == False:
+            return JsonResponse({'error': 'Access denied.'}, status=403)        
+        try:
+            tableOrder = TableOrder.objects.get(pk=pk, active=True)
+        except TableOrder.DoesNotExist:
+            return JsonResponse({'error': 'Order not found.'}, status=404)
+        
+        orderState = tableOrder.get_TableOrder_OrderStates.first()
+        if orderState.state != 'Waiting to be cooked':
+            return JsonResponse({'error': 'Order not in "Waiting to be cooked".'}, status=400)
+        
+        orderState.state = 'Waiting to be served'
+        orderState.save()
+        
+        return JsonResponse({'success': True})
     

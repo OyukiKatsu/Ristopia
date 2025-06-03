@@ -15,31 +15,15 @@
       <h1 class="text-xl font-bold">{{ restaurant.name }}</h1>
     </div>
 
-    <button
-      @click="authenticated ? showYourCode() : openAuthModal()"
-      class="self-end sm:self-auto px-2 py-1 rounded-full text-xs sm:text-sm font-medium
-             bg-yellow-400 text-white hover:bg-yellow-500"
-    >
+    <button @click="authenticated ? showYourCode() : openAuthModal()" class="self-end sm:self-auto px-2 py-1 rounded-full text-xs sm:text-sm font-medium bg-yellow-400 text-white hover:bg-yellow-500">
       [[ authenticated ? 'View Code' : 'Authenticate Here' ]]
     </button>
   </header>
 
   <!-- Category Bar -->
   <nav class="bg-yellow-100 overflow-x-auto whitespace-no-wrap p-2 z-0">
-    <transition-group tag="div" name="cat"
-      enter-active-class="animate__animated animate__fadeInRight"
-      leave-active-class="animate__animated animate__fadeOutLeft"
-      class="inline-flex space-x-2"
-    >
-      <button
-        v-for="cat in categories"
-        :key="cat.id"
-        @click="selectCategory(cat.id)"
-        :class="[ 
-          'px-4 py-2 rounded-full text-sm font-medium flex-shrink-0',
-          selected === cat.id ? 'bg-yellow-400 text-white' : 'bg-white text-gray-700'
-        ]"
-      >
+    <transition-group tag="div" name="cat" enter-active-class="animate__animated animate__fadeInRight" leave-active-class="animate__animated animate__fadeOutLeft" class="inline-flex space-x-2">
+      <button v-for="cat in categories" :key="cat.id" @click="selectCategory(cat.id)" :class="['px-4 py-2 rounded-full text-sm font-medium flex-shrink-0', selected === cat.id ? 'bg-yellow-400 text-white' : 'bg-white text-gray-700']">
         [[ cat.name ]]
       </button>
     </transition-group>
@@ -47,16 +31,8 @@
 
   <!-- Elements Grid -->
   <main class="flex-1 overflow-y-auto p-4 z-0">
-    <transition-group tag="div" name="item" class="space-y-4"
-      enter-active-class="animate__animated animate__fadeInUp"
-      leave-active-class="animate__animated animate__fadeOutDown"
-    >
-      <div
-        v-for="item in elements"
-        :key="item.id"
-        class="relative bg-white rounded-lg shadow p-4 cursor-pointer hover:border-yellow-500 hover:shadow-lg"
-        @click="addToOrder(item)"
-      >
+    <transition-group tag="div" name="item" class="space-y-4" enter-active-class="animate__animated animate__fadeInUp" leave-active-class="animate__animated animate__fadeOutDown">
+      <div v-for="item in elements" :key="item.id" class="relative bg-white rounded-lg shadow p-4 cursor-pointer hover:border-yellow-500 hover:shadow-lg" @click="addToOrder(item)">
         <div class="absolute top-2 right-2 text-gray-400">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
@@ -65,15 +41,8 @@
 
         <div class="flex items-start space-x-3">
           <div class="flex-shrink-0">
-            <img
-              v-if="item.icon_url"
-              :src="item.icon_url"
-              class="w-20 h-20 rounded object-cover"
-            />
-            <div
-              v-else
-              class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs"
-            >
+            <img v-if="item.icon_url" :src="item.icon_url" class="w-20 h-20 rounded object-cover"/>
+            <div v-else class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs">
               No Image
             </div>
           </div>
@@ -83,23 +52,10 @@
             <p class="text-sm text-gray-600 mt-1 line-clamp-2">[[ item.description ]]</p>
             <p class="text-sm text-green-600 font-medium mt-2">€[[ item.price ]]</p>
 
-            <div
-              v-if="item.allergens && item.allergens.length"
-              class="flex space-x-1 mt-2"
-            >
+            <div v-if="item.allergens && item.allergens.length" class="flex space-x-1 mt-2">
               <template v-for="(alg, idx) in item.allergens" :key="idx">
-                <img
-                  v-if="alg.icon_url"
-                  :src="alg.icon_url"
-                  :alt="alg.name"
-                  :title="alg.name"
-                  class="w-4 h-4"
-                />
-                <span
-                  v-else
-                  class="text-xs text-gray-500"
-                  :title="alg.name"
-                >[[ alg.name[0].toUpperCase() ]]</span>
+                <img v-if="alg.icon_url" :src="alg.icon_url" :alt="alg.name" :title="alg.name" class="w-4 h-4"/>
+                <span v-else class="text-xs text-gray-500" :title="alg.name">[[ alg.name[0].toUpperCase() ]]</span>
               </template>
             </div>
           </div>
@@ -113,56 +69,33 @@
   </main>
 
   <!-- View My Orders button -->
-  <button
-    v-if="existingOrders.length > 0"
-    @click="showExistingOrdersModal = true"
-    class="fixed top-4 right-4 bg-blue-600 text-white p-2 rounded-full shadow-lg z-20"
-    title="My Orders"
-  >
+  <button v-if="existingOrders.length > 0" @click="showExistingOrdersModal = true" class="fixed top-4 right-4 bg-blue-600 text-white p-2 rounded-full shadow-lg z-20" title="My Orders">
     <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round"
-            d="M9 5h6m-6 7h6m-6 7h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5h6m-6 7h6m-6 7h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/>
     </svg>
   </button>
 
   <!-- New Order button -->
-  <button
-    v-if="orderItems.length > 0"
-    @click="showOrderModal = true"
-    class="fixed bottom-4 left-1/2 transform -translate-x-1/2
-           bg-green-500 text-white px-6 py-3 rounded-full shadow-lg z-20"
-    >
-  <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2l4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-  </svg>
-
+  <button v-if="orderItems.length > 0" @click="showOrderModal = true" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg z-20">
+    <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2l4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
     <span>Confirm Order ([[ groupedOrder.length ]])</span>
   </button>
 
 
   <!-- ORDER SUMMARY MODAl -->
-  <div
-    v-if="showOrderModal"
-    @click.self="showOrderModal = false"
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40"
-  >
+  <div v-if="showOrderModal" @click.self="showOrderModal = false" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
     <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6 over">
       <h3 class="text-xl font-semibold mb-4">Your Order</h3>
 
       <p v-if="groupedOrder.length === 0" class="text-gray-500 mb-4">
-        You haven’t selected any dishes yet.
+        You haven't selected any dishes yet.
       </p>
 
       <div v-for="entry in groupedOrder" :key="entry.item.id" class="mb-4 flex items-center">
-        <img
-          v-if="entry.item.icon_url"
-          :src="entry.item.icon_url"
-          class="w-12 h-12 rounded object-cover mr-3"
-        >
-        <div
-          v-else
-          class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs mr-3"
-        >
+        <img v-if="entry.item.icon_url" :src="entry.item.icon_url" class="w-12 h-12 rounded object-cover mr-3">
+        <div v-else class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs mr-3">
           No Image
         </div>
         <div class="flex-1">
@@ -170,33 +103,17 @@
           <p class="text-sm text-gray-600">€[[ entry.item.price ]] each</p>
         </div>
         <div class="flex items-center space-x-2">
-          <button
-            @click="decrement(entry.item.id)"
-            class="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full"
-          >-</button>
+          <button @click="decrement(entry.item.id)" class="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full">-</button>
           <span>[[ entry.qty ]]</span>
-          <button
-            @click="increment(entry.item.id)"
-            class="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full"
-          >+</button>
-          <button
-            @click="removeEntire(entry.item.id)"
-            class="ml-2 text-red-500 hover:text-red-700"
-          >✕</button>
+          <button @click="increment(entry.item.id)" class="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full">+</button>
+          <button @click="removeEntire(entry.item.id)" class="ml-2 text-red-500 hover:text-red-700">✕</button>
         </div>
       </div>
 
       <div class="mt-6 flex justify-between items-center">
-        <button
-          @click="showOrderModal = false"
-          class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
-        >Close</button>
+        <button @click="showOrderModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Close</button>
 
-        <button
-          v-if="authenticated"
-          @click="confirmOrder"
-          class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600"
-        >Confirm Order</button>
+        <button v-if="authenticated" @click="confirmOrder" class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600">Confirm Order</button>
         <span v-else class="text-sm italic text-gray-500">
           Authenticate to order
         </span>
@@ -206,11 +123,7 @@
 
 
  <!-- EXISTING ORDERS MODAL -->
-  <div
-    v-if="showExistingOrdersModal"
-    @click.self="showExistingOrdersModal = false"
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40"
-  >
+  <div v-if="showExistingOrdersModal" @click.self="showExistingOrdersModal = false" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
     <div class="bg-white rounded-lg shadow-lg w-full max-w-md max-h-full overflow-y-auto p-6">
       <h3 class="text-xl font-semibold mb-4">My Orders</h3>
 
@@ -220,54 +133,31 @@
       </p>
 
       <!-- List each saved order -->
-      <div
-        v-for="ord in existingOrders"
-        :key="ord.order_id"
-        class="mb-4 flex items-center space-x-3"
-      >
-        <!-- 1) Item image -->
-        <img
-          v-if="ord.icon_url"
-          :src="ord.icon_url"
-          class="w-12 h-12 rounded object-cover"
-        />
-        <div
-          v-else
-          class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs"
-        >
+      <div v-for="ord in existingOrders" :key="ord.order_id" class="mb-4 flex items-center space-x-3">
+        <!-- Item image -->
+        <img v-if="ord.icon_url" :src="ord.icon_url" class="w-12 h-12 rounded object-cover"/>
+        <div v-else class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs">
           No Image
         </div>
 
-        <!-- 2) Name + price -->
+        <!-- Name + price -->
         <div class="flex-1">
           <h4 class="font-medium">[[ ord.item_name ]]</h4>
           <p class="text-sm text-gray-600">€[[ ord.price ]]</p>
         </div>
 
-        <!-- 3) State with color + optional bounce animation -->
+        <!-- State with color + optional bounce animation -->
         <div class="flex-shrink-0">
           <!-- Animate for “Waiting to be cooked” or “Waiting to be served” -->
           <template v-if="ord.state_key === 'Waiting to be cooked' || ord.state_key === 'Waiting to be served'">
-            <div
-              class="bounce-text"
-              :class="{
-                'text-orange-500': ord.state_key === 'Waiting to be cooked',
-                'text-blue-500':   ord.state_key === 'Waiting to be served'
-              }"
-            >
+            <div class="bounce-text" :class="{'text-orange-500': ord.state_key === 'Waiting to be cooked','text-blue-500':   ord.state_key === 'Waiting to be served'}">
               <span v-for="(ch, idx) in ord.state_display.split('')" :key="idx">[[ ch ]]</span>
             </div>
           </template>
 
           <!-- Plain text for the other two states -->
           <template v-else>
-            <span
-              class="text-sm font-medium whitespace-nowrap"
-              :class="{
-                'text-gray-500':   ord.state_key === 'Waiting to be send to cook',
-                'text-green-500':  ord.state_key === 'Delivered, Enjoy your meal!'
-              }"
-            >
+            <span class="text-sm font-medium whitespace-nowrap" :class="{ 'text-gray-500':   ord.state_key === 'Waiting to be send to cook','text-green-500':  ord.state_key === 'Delivered, Enjoy your meal!'}">
               [[ ord.state_display ]]
             </span>
           </template>
@@ -281,10 +171,7 @@
 
       <!-- Close button -->
       <div class="mt-4 flex justify-center">
-        <button
-          @click="showExistingOrdersModal = false"
-          class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
-        >
+        <button @click="showExistingOrdersModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">
           Close
         </button>
       </div>
@@ -294,44 +181,24 @@
 
 
   <!-- AUTH CODE MODAL -->
-  <div
-    v-if="showAuth"
-    @click.self="showAuth=false; authError=null"
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-30"
-  >
+  <div v-if="showAuth" @click.self="showAuth=false; authError=null" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-30">
     <div class="bg-white rounded-lg shadow-lg w-full max-w-sm p-6">
       <h3 class="text-lg font-semibold mb-4">Enter 5-char Code</h3>
-      <input
-        v-model="authInput"
-        maxlength="5"
-        class="w-full border p-2 rounded mb-2"
-        placeholder="ABCDE"
-      >
+      <input v-model="authInput" maxlength="5" class="w-full border p-2 rounded mb-2" placeholder="ABCDE">
       <p v-if="authError" class="text-red-500 text-sm mb-2">[[ authError ]]</p>
       <div class="flex justify-end">
-        <button @click="showAuth=false"
-                class="px-4 py-2 rounded mr-2">Cancel</button>
-        <button @click="submitAuth"
-                class="px-4 py-2 bg-yellow-400 text-white rounded">
-          Submit
-        </button>
+        <button @click="showAuth=false" class="px-4 py-2 rounded mr-2">Cancel</button>
+        <button @click="submitAuth" class="px-4 py-2 bg-yellow-400 text-white rounded">Submit</button>
       </div>
     </div>
   </div>
 
   <!-- VIEW CODE MODAL -->
-  <div
-    v-if="showCode"
-    @click.self="showCode=false"
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-30"
-  >
+  <div v-if="showCode" @click.self="showCode=false" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-30">
     <div class="bg-white rounded-lg shadow-lg w-full max-w-xs p-6 text-center">
       <h3 class="font-semibold mb-4">Your Table Code</h3>
       <p class="text-2xl font-mono mb-4">[[ authCode ]]</p>
-      <button @click="showCode=false"
-              class="px-4 py-2 bg-yellow-400 text-white rounded">
-        Close
-      </button>
+      <button @click="showCode=false" class="px-4 py-2 bg-yellow-400 text-white rounded">Close</button>
     </div>
   </div>
 

@@ -84,7 +84,7 @@
           <button id="add-category-btn"
                   class="bg-gray-300 px-4 py-2 rounded-full">+</button>
         </div>
-        <div id="category-elements">
+        <div id="category-elements" class="overflow-x-auto">
           <!-- elements loaded here -->
         </div>
       </div>
@@ -104,13 +104,12 @@
 </div>
 
 <!-- Element Modal -->
-<div id="element-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center overflow-y-scroll">
-  <div class="bg-white p-4 rounded-lg shadow-lg">
+<div id="element-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white p-4 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
     <h3 class="text-lg font-bold mb-2">Add / Edit Element</h3>
-    <input type="text" id="new-element-name" placeholder="Item Name"
-           class="border p-2 mb-2 w-full rounded">
-    <textarea id="new-element-description" placeholder="Description"
-              class="border p-2 mb-2 w-full rounded"></textarea>
+    <input type="text" id="new-element-name" placeholder="Item Name" class="border p-2 mb-2 w-full rounded">
+    <textarea id="new-element-description" placeholder="Description" class="border p-2 mb-2 w-full rounded"></textarea>
+    <textarea id="new-element-recipe" placeholder="Recipe instructions" class="border p-2 mb-2 w-full rounded" rows="3"></textarea>
     <select id="new-element-type" class="border p-2 mb-2 w-full rounded">
       <option value="">-- Select type --</option>
       <option value="To share">To share</option>
@@ -429,7 +428,7 @@ $('#confirm-edit-category-btn').click(() => {
       $.get(`/user/owner/${ownerId}/menu/category/${catId}/elements/`)
        .done(response => {
          const cards = response.elements.map(element => `
-           <div id="element-${element.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4 overflow-x-auto overflow-y-visible" data-allergens='${JSON.stringify(element.allergens)}'>
+           <div id="element-${element.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4 overflow-x-auto overflow-y-visible min-w-full min-w-max" data-allergens='${JSON.stringify(element.allergens)}' data-recipe="${(element.recipe || '').replace(/"/g, '&quot;')}">
              ${element.icon_url
                ? `<img src="${element.icon_url}" class="w-24 h-24 object-cover rounded">`
                : `<div class="w-24 h-24 bg-gray-100 rounded flex items-center justify-center">No Image</div>`
@@ -525,6 +524,7 @@ $('#confirm-edit-category-btn').click(() => {
     $(document).on('click', '#add-element-btn', function() {
       $('#new-element-name').val('');
       $('#new-element-description').val('');
+      $('#new-element-recipe').val(''); 
       $('#new-element-type').val('');
       $('#new-element-price').val('');
       $('#new-element-cost').val('');
@@ -632,6 +632,7 @@ $('#confirm-edit-category-btn').click(() => {
 
       $('#new-element-name').val(        card.find('p.font-semibold').text() );
       $('#new-element-description').val( card.find('p.text-gray-600').text() );
+      $('#new-element-recipe').val(      card.data('recipe') );
       $('#new-element-price').val(       card.find('p.text-green-600').text().replace(/[^0-9.]/g,'') );
       $('#new-element-cost').val(        card.find('p.text-red-600').text().replace(/[^0-9.]/g,'') );
       $('#new-element-type').val(        card.find('p.text-blue-600').text().replace('Type:', '').trim());
@@ -673,6 +674,7 @@ $('#confirm-edit-category-btn').click(() => {
       data.append('category_id', categoryId);
       data.append('name', $('#new-element-name').val());
       data.append('description', $('#new-element-description').val());
+      data.append('recipe', $('#new-element-recipe').val());
       data.append('price', $('#new-element-price').val());
       data.append('cost', $('#new-element-cost').val());
       data.append('type', $('#new-element-type').val());
