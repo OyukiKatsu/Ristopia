@@ -331,3 +331,74 @@ class CompleteOrderView(LoginRequiredMixin, View):
         
         return JsonResponse({'success': True})
     
+# ====== Chef ====== #
+class MapsListView(LoginRequiredMixin, View):
+    def get(self, request, restaurant_id, *args, **kwargs):
+        worker = request.user.get_User_Profile.get_Profile_Workers.first()
+        restaurant = get_object_or_404(Restaurante, pk=restaurant_id)
+        if not (worker and worker.type == "Chef" and worker.restaurant_id == restaurant.id and worker.active):
+            return JsonResponse({"error": "Access denied."}, status=403)
+
+        qs = Map.objects.filter(restaurant=restaurant).values("id", "name")
+        return JsonResponse({"maps": list(qs)})
+
+
+class TablesOnMapView(LoginRequiredMixin, View):
+    def get(self, request, restaurant_id, map_id, *args, **kwargs):
+        worker = request.user.get_User_Profile.get_Profile_Workers.first()
+        restaurant = get_object_or_404(Restaurante, pk=restaurant_id)
+        if not (worker and worker.type == "Chef" and worker.restaurant_id == restaurant.id and worker.active):
+            return JsonResponse({"error": "Access denied."}, status=403)
+
+        floor = get_object_or_404(Map, pk=map_id, restaurant=restaurant)
+
+        qs = Table.objects.filter(map=floor, open=True).values("id", "name")
+        return JsonResponse({"tables": list(qs)})
+
+
+class TableOrdersViewChef(LoginRequiredMixin, View):
+    def get(self, request, restaurant_id, table_id, *args, **kwargs):
+        worker = request.user.get_User_Profile.get_Profile_Workers.first()
+        restaurant = get_object_or_404(Restaurante, pk=restaurant_id)
+        if not (worker and worker.type == "Chef" and worker.restaurant_id == restaurant.id and worker.active):
+            return JsonResponse({"error": "Access denied."}, status=403)
+
+        table = get_object_or_404(Table, pk=table_id, map__restaurant=restaurant)
+
+        qs = (
+            TableOrder.objects
+            .filter(table=table, active=True)
+            .select_related("category_element")
+            .prefetch_related("get_TableOrder_OrderStates")
+            .order_by("date")
+        )
+
+        orders_list = []
+        for to in qs:
+            elem = to.category_element
+            state_obj = to.get_TableOrder_OrderStates.first()
+            state_key = state_obj.state
+
+            if state_key == "Waiting to be cooked":
+                state_display = "In the kitchen..."
+            elif state_key == "Waiting to be served":
+                state_display = "Waiter is on its way..."
+            elif state_key == "Waiting to be send to cook":
+                state_display = "Marching..."
+            elif state_key == "Delivered, Enjoy your meal!":
+                state_display = "Delivered, Enjoy!"
+            else:
+                state_display = state_key
+
+            image_url = elem.icon.url if elem.icon else ""
+
+            orders_list.append({
+                "order_id":     to.id,
+                "element_name": elem.name,
+                "recipe":       elem.recipe,
+                "image_url":    image_url,
+                "state_key":    state_key,
+                "state_display": state_display,
+                "ordered_at":   to.date.isoformat(),
+            })
+        return JsonResponse({"orders": orders_list})

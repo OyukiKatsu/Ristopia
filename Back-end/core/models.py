@@ -47,6 +47,7 @@ class Map(models.Model):
 class Table(models.Model):
     map = models.ForeignKey(Map, on_delete=models.CASCADE, related_name='get_Map_Tables')
     name = models.CharField(max_length=100)
+    open = models.BooleanField(default=False)
     authentication_code = models.CharField(max_length=5)
 
     class Meta:

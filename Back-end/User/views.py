@@ -251,6 +251,7 @@ class ResetPasswordTokenView(TemplateView):
             return redirect(request.path)
 
 # ====== Owner Dashboards ====== #
+
 class OwnerView(LoginRequiredMixin, TemplateView):
     """
     OwnerView
@@ -1105,20 +1106,14 @@ class DeleteWorkerView(LoginRequiredMixin, View):
 # === Map Creator === #
 class SaveMapView(LoginRequiredMixin, View):
     """
-    SaveMapView
-    -----------
-    Persists floor maps, tables, and bars from a JSON payload in a single transaction.
+    Persists floors (Map), their Tables (+TableCells) and Bars (+BarCells)
+    from a JSON payload.  Does an upsert on Map, then diffs each table/bar’s
+    cells so we never blindly delete orders or other related data.
     """
     def post(self, request, owner_id):
-        """
-        - Validates owner.
-        - Parses JSON body containing 'maps' array.
-        - For each map: create/update Map, diff and sync Tables & Bars + their cells.
-        - All operations wrapped in atomic transaction.
-        - Returns {'status':'ok'} on success or HTTP 400 on invalid JSON.
-        """
         if request.user.get_User_Profile.id != int(owner_id):
             return JsonResponse({'error': "Permission denied."}, status=403)
+
         owner      = get_object_or_404(Profile, id=owner_id)
         restaurant = get_object_or_404(Restaurante, owner=owner)
 
@@ -1128,10 +1123,8 @@ class SaveMapView(LoginRequiredMixin, View):
         except (ValueError, KeyError):
             return HttpResponseBadRequest("Invalid JSON payload")
 
-        # Wrap all map/table/bar changes atomically
         with transaction.atomic():
             for m in maps_data:
-                # Extract map fields
                 map_id = m.get('id')
                 name   = m['name']
                 w      = m.get('w') or m.get('dimension_x')
@@ -1139,7 +1132,6 @@ class SaveMapView(LoginRequiredMixin, View):
                 tables = m.get('tables', [])
                 bars   = m.get('bars', [])
 
-                # Create or update Map
                 if map_id:
                     map_obj = get_object_or_404(Map, pk=map_id, restaurant=restaurant)
                     map_obj.name        = name
@@ -1154,9 +1146,83 @@ class SaveMapView(LoginRequiredMixin, View):
                         dimension_y=h
                     )
 
-                # …then diff/update/create/delete tables and their cells…
-                # …and likewise for bars under this map…
-                # (omitted here for brevity, but use the same inline‐comment style)
+                existing_tables = { t.id: t for t in map_obj.get_Map_Tables.all() }
+                incoming_ids     = set()
+
+                for tbl in tables:
+                    tbl_id   = tbl.get('id')            
+                    tbl_name = tbl['name']
+                    cells    = tbl.get('cells', [])
+
+                    if tbl_id and tbl_id in existing_tables:
+                        tbl_obj = existing_tables[tbl_id]
+                    else:
+                        tbl_obj = Table.objects.create(
+                            map=map_obj,
+                            name=tbl_name
+                        )
+
+                    incoming_ids.add(tbl_obj.id)
+
+                    existing_cells = set(
+                        map(lambda c: (c.x, c.y), tbl_obj.cells.all())
+                    )
+                    new_cells = set((c['x'], c['y']) for c in cells)
+
+                    to_delete = existing_cells - new_cells
+                    if to_delete:
+                        for (dx, dy) in to_delete:
+                            TableCell.objects.filter(
+                                table=tbl_obj, x=dx, y=dy
+                            ).delete()
+
+                    to_add = new_cells - existing_cells
+                    if to_add:
+                        TableCell.objects.bulk_create([
+                            TableCell(table=tbl_obj, x=dx, y=dy)
+                            for (dx, dy) in to_add
+                        ])
+
+                to_remove_table_ids = set(existing_tables.keys()) - incoming_ids
+                if to_remove_table_ids:
+                    Table.objects.filter(id__in=to_remove_table_ids).delete()
+
+                existing_bars = { b.id: b for b in map_obj.get_Map_Bars.all() }
+                incoming_bar_ids = set()
+
+                for bar in bars:
+                    bar_id = bar.get('id')
+                    cells  = bar.get('cells', [])
+
+                    if bar_id and bar_id in existing_bars:
+                        bar_obj = existing_bars[bar_id]
+                    else:
+                        bar_obj = Bar.objects.create(map=map_obj)
+
+                    incoming_bar_ids.add(bar_obj.id)
+
+                    existing_cells = set(
+                        map(lambda c: (c.x, c.y), bar_obj.cells.all())
+                    )
+                    new_cells = set((c['x'], c['y']) for c in cells)
+
+                    to_delete = existing_cells - new_cells
+                    if to_delete:
+                        for (dx, dy) in to_delete:
+                            BarCell.objects.filter(
+                                bar=bar_obj, x=dx, y=dy
+                            ).delete()
+
+                    to_add = new_cells - existing_cells
+                    if to_add:
+                        BarCell.objects.bulk_create([
+                            BarCell(bar=bar_obj, x=dx, y=dy)
+                            for (dx, dy) in to_add
+                        ])
+
+                to_remove_bar_ids = set(existing_bars.keys()) - incoming_bar_ids
+                if to_remove_bar_ids:
+                    Bar.objects.filter(id__in=to_remove_bar_ids).delete()
 
         return JsonResponse({'status': 'ok'})
 class CreateFloorView(LoginRequiredMixin, View):
