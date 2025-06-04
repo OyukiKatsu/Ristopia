@@ -209,6 +209,42 @@ class TableOrdersView(View):
             })
 
         return JsonResponse({'orders': orders_list})
+class TableCallWaiterView(View):
+    def post(self, request, token, *args, **kwargs):
+        try:
+            payload = signing.loads(
+                token,
+                key=settings.SECRET_KEY,
+                salt='table-token',
+                serializer=signing.JSONSerializer
+            )
+            rest_id  = payload['restaurant_id']
+            table_id = payload['table_id']
+        except signing.BadSignature:
+            return JsonResponse({'error': 'Invalid token'}, status=400)
+
+        table = get_object_or_404(Table, pk=table_id, map__restaurant_id=rest_id)
+
+        table.calling_waiter = True
+        table.save()
+
+        return JsonResponse({'ok': True})
+class TableIsOpenView(View):
+    def get(self, request, token, *args, **kwargs):
+        try:
+            data = signing.loads(
+                token,
+                key=settings.SECRET_KEY,
+                salt='table-token',
+                serializer=signing.JSONSerializer
+            )
+            rest_id  = data['restaurant_id']
+            table_id = data['table_id']
+        except signing.BadSignature:
+            raise SuspiciousOperation("Invalid table link")
+
+        table = get_object_or_404(Table, pk=table_id, map__restaurant_id=rest_id)
+        return JsonResponse({'open': table.open})
 
 # ====== Menu ====== #
 class CategoryElementsView(View):

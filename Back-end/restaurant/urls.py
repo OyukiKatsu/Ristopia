@@ -14,6 +14,10 @@ urlpatterns = [
         path('table/<str:token>/authenticate/', AuthCodeView.as_view(), name='table_authenticate'),
         path('table/<str:token>/order/', OrderView.as_view(), name='table_order'),
         path('table/<token>/orders/', TableOrdersView.as_view(), name='table_orders'),
+        path('table/<token>/call_waiter/', TableCallWaiterView.as_view(), name='table_call_waiter'),
+        path('table/<str:token>/is_open/', TableIsOpenView.as_view(), name='table_is_open'),
+
+
 
                 # ====== Menu ====== #
         path('<int:restaurant_id>/menu/categories/', CategoriesView.as_view(), name='categories_restaurant'),

@@ -49,6 +49,7 @@ class Table(models.Model):
     name = models.CharField(max_length=100)
     open = models.BooleanField(default=False)
     authentication_code = models.CharField(max_length=5)
+    calling_waiter = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'Table'
