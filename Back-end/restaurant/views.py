@@ -372,7 +372,7 @@ class MapsListView(LoginRequiredMixin, View):
     def get(self, request, restaurant_id, *args, **kwargs):
         worker = request.user.get_User_Profile.get_Profile_Workers.first()
         restaurant = get_object_or_404(Restaurante, pk=restaurant_id)
-        if not (worker and worker.type == "Chef" and worker.restaurant_id == restaurant.id and worker.active):
+        if not (worker and worker.restaurant_id == restaurant.id and worker.active):
             return JsonResponse({"error": "Access denied."}, status=403)
 
         qs = Map.objects.filter(restaurant=restaurant).values("id", "name")
@@ -438,3 +438,200 @@ class TableOrdersViewChef(LoginRequiredMixin, View):
                 "ordered_at":   to.date.isoformat(),
             })
         return JsonResponse({"orders": orders_list})
+    
+
+class MapDetailView(LoginRequiredMixin, View):
+    """
+    Returns JSON for a single floor (Map), including:
+      - id, name, w, h
+      - tables: [ { id, name, open, calling_waiter, cells: [{x,y},...] }, … ]
+      - bars:   [ { id, cells: [{x,y}, …] }, … ]
+    Only a Waiter or Chef belonging to this restaurant may fetch it.
+    """
+
+    def get(self, request, restaurant_id, map_id, *args, **kwargs):
+        # 1) Verify the logged‐in user is a valid Worker for this restaurant
+        user_profile = request.user.get_User_Profile
+        worker_qs = user_profile.get_Profile_Workers.filter(
+            restaurant_id=restaurant_id,
+            active=True,
+            type__in=['Waiter', 'Chef']
+        )
+
+        if not worker_qs.exists():
+            return JsonResponse({"error": "Access denied."}, status=403)
+
+        # 2) Ensure the restaurant exists
+        restaurant = get_object_or_404(Restaurante, pk=restaurant_id)
+
+        # 3) Ensure this Map (floor) exists under that restaurant
+        floor = get_object_or_404(Map, pk=map_id, restaurant=restaurant)
+
+        # 4) Build the payload
+        payload = {
+            "id":   floor.id,
+            "name": floor.name,
+            "w":    floor.dimension_x,
+            "h":    floor.dimension_y,
+            "tables": [],
+            "bars":   []
+        }
+
+        # 5) Gather all Tables on this floor, including their “open” and “calling_waiter” flags, plus their cells
+        tbl_qs = Table.objects.filter(map=floor)
+        # We include both open and closed tables, since we need to render table‐images appropriately.
+        for tbl in tbl_qs:
+            cells = list(
+                tbl.cells.values('x', 'y')
+            )
+            payload["tables"].append({
+                "id":               tbl.id,
+                "name":             tbl.name,
+                "open":             tbl.open,
+                "calling_waiter":   tbl.calling_waiter,
+                "cells":            cells
+            })
+
+        # 6) Gather Bars on this floor
+        bar_qs = Bar.objects.filter(map=floor)
+        for bar in bar_qs:
+            cells = list(
+                bar.cells.values('x', 'y')
+            )
+            payload["bars"].append({
+                "id":    bar.id,
+                "cells": cells
+            })
+
+        return JsonResponse(payload, status=200, safe=True)
+    
+class TableOrdersViewWaiter(LoginRequiredMixin, View):
+    """
+    GET /<restaurant_id>/maps/<map_id>/tables/<table_id>/orders_waiter/
+    Returns JSON for all active orders on that table, including:
+      - item name, price, date, icon_url, state_key, state_display
+      - a running total if you need it (optional)
+    Only active Waiter/Chef for the restaurant may fetch.
+    """
+    def get(self, request, restaurant_id, map_id, table_id, *args, **kwargs):
+        # 1) Permission check (must be active Waiter or Chef)
+        user_profile = request.user.get_User_Profile
+        worker_qs = user_profile.get_Profile_Workers.filter(
+            restaurant_id=restaurant_id,
+            active=True,
+            type__in=['Waiter', 'Chef']
+        )
+        if not worker_qs.exists():
+            return JsonResponse({"error": "Access denied."}, status=403)
+
+        # 2) Ensure restaurant exists
+        restaurant = get_object_or_404(Restaurante, pk=restaurant_id)
+
+        # 3) Ensure Map belongs to that restaurant
+        floor = get_object_or_404(Map, pk=map_id, restaurant=restaurant)
+
+        # 4) Ensure Table belongs to that floor
+        table = get_object_or_404(Table, pk=table_id, map=floor)
+
+        # 5) Fetch all active orders for that table (old → new)
+        qs = (
+            TableOrder.objects
+            .filter(table=table, active=True)
+            .select_related("category_element")
+            .prefetch_related("get_TableOrder_OrderStates")
+            .order_by("date")
+        )
+
+        orders_list = []
+        total_spent = 0.0
+
+        for to in qs:
+            elem = to.category_element
+            price = float(elem.price)
+            total_spent += price
+
+            # Grab the very first (i.e. oldest) OrderState for this TableOrder
+            # which presumably is its current/latest state.
+            state_obj = to.get_TableOrder_OrderStates.first()
+            state_key = state_obj.state if state_obj else ""
+            if state_key == "Waiting to be cooked":
+                state_display = "In the kitchen..."
+            elif state_key == "Waiting to be served":
+                state_display = "Waiter is on its way..."
+            elif state_key == "Waiting to be send to cook":
+                state_display = "Marching..."
+            elif state_key == "Delivered, Enjoy your meal!":
+                state_display = "Delivered, Enjoy!"
+            else:
+                state_display = state_key
+
+            # Build icon URL if present
+            icon_url = ""
+            if elem.icon:
+                icon_url = urljoin(settings.MEDIA_URL, elem.icon.name)
+            
+            orders_list.append({
+                "order_id":     to.id,
+                "item_name":    elem.name,
+                "price":        price,
+                "date":         to.date.isoformat(),
+                "icon_url":     icon_url,
+                "state_key":    state_key,
+                "type":         elem.type,
+                "state_display": state_display,
+            })
+
+        return JsonResponse({
+            "table_id":   table.id,
+            "table_name": table.name,
+            "orders":     orders_list,
+            "total":      round(total_spent, 2)
+        }, status=200)
+
+
+class TableOpenView(View):
+    def post(self, request, restaurant_id, table_id, *args, **kwargs):
+        print(restaurant_id)
+        print(request.user.get_User_Profile.get_Profile_Workers.first().restaurant_id)
+        if request.user.get_User_Profile.get_Profile_Workers.first().restaurant_id != restaurant_id:
+            return JsonResponse({"error": "Access denied."}, status=403)
+        print(table_id)
+        table = get_object_or_404(Table, id=table_id)
+        table.open = True
+        table.save()
+
+        return JsonResponse({"status": "success"}, status=200)
+
+
+class TableCloseView(View):
+    def post(self, request, restaurant_id, table_id, *args, **kwargs):
+        if request.user.get_User_Profile.get_Profile_Workers.first().restaurant_id != restaurant_id:
+            return JsonResponse({"error": "Access denied."}, status=403)
+
+        table = get_object_or_404(Table, id=table_id)
+        table.open = False
+        table.calling_waiter = False
+        table.save()
+        TableOrder.objects.filter(table=table).update(active=False)
+        return JsonResponse({"status": "success"}, status=200)
+    
+class TableAttendedView(View):
+    def post(self, request, restaurant_id, table_id, *args, **kwargs):
+        if request.user.get_User_Profile.get_Profile_Workers.first().restaurant_id != restaurant_id:
+            return JsonResponse({"error": "Access denied."}, status=403)
+
+        table = get_object_or_404(Table, id=table_id)
+        table.calling_waiter = False
+        table.save()
+
+        return JsonResponse({"status": "success"}, status=200)
+
+
+"""
+        tableClosedImg:     "/media/core/Table.png",
+        tableOpenGreenImg:  "/media/core/Table_Green.png",
+        tableCallOrangeImg: "/media/core/Table_Orange.png",
+        barImg:             "/media/core/Bar.png",
+        stoolImg:           "/media/core/Stool.png",
+
+"""

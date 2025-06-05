@@ -390,26 +390,26 @@ class WorkersView(LoginRequiredMixin, TemplateView):
 # ====== Worker Dashboards ====== #
 class WaiterView(LoginRequiredMixin, TemplateView):
     """
-    WaiterView
-    ----------
-    Displays a simple dashboard for waiters.
+    Now purely returns an empty template; the Vue app will fetch all map/tables data via AJAX.
     """
     template_name = 'User/waiter.html'
 
     def get(self, request, waiter_id):
-        """
-        - Ensures the logged‐in user is the correct waiter.
-        - Renders the waiter dashboard.
-        """
         user = request.user
         try:
-            Worker.objects.get(id=waiter_id, user__user=user, type='Waiter')
+            worker = Worker.objects.get(
+                id=waiter_id,
+                user__user=user,
+                type='Waiter',
+                active=True
+            )
         except Worker.DoesNotExist:
             raise PermissionDenied("403 Forbidden: You don't have access to this waiter dashboard.")
 
         context = {
             'username': user.username,
-            'role': 'Waiter'
+            'role':     'Waiter',
+            'restaurant': worker.restaurant
         }
         return render(request, self.template_name, context)
 class ChefView(LoginRequiredMixin, TemplateView):
