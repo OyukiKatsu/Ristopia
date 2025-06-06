@@ -111,7 +111,7 @@
 
       <!-- ORDER SUMMARY MODAl -->
       <div v-if="showOrderModal" @click.self="showOrderModal = false" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6 over">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6 overflow-y-auto max-h-[90vh]">
           <h3 class="text-xl font-semibold mb-4">Your Order</h3>
 
           <p v-if="groupedOrder.length === 0" class="text-gray-500 mb-4">

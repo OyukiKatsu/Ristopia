@@ -11,7 +11,8 @@ from django.core.exceptions import SuspiciousOperation
 from django.core import signing
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
-
+import random
+import string
 
 # ====== Dysplay Pages ====== #
 
@@ -577,6 +578,8 @@ class TableOrdersViewWaiter(LoginRequiredMixin, View):
 
         return JsonResponse({
             "table_id":   table.id,
+            "table_authCode":      table.authentication_code,
+            "table_callWaiter":   table.calling_waiter,
             "table_name": table.name,
             "orders":     orders_list,
             "total":      round(total_spent, 2)
@@ -635,20 +638,71 @@ class DeliveredOrdersView(LoginRequiredMixin, View):
 
 
         return JsonResponse({'success': True})
-    
+class UpdateComandaView(View):
+    """
+    POST /<restaurant_id>/orders/<table_id>/update_comanda/
+    Payload: { "updates": [ { order_id, new_state }, … ], "deletes": [ order_id, … ] }
+    """
+
+    def post(self, request, restaurant_id, table_id, *args, **kwargs):
+        user_profile = request.user.get_User_Profile
+        worker_qs = user_profile.get_Profile_Workers.filter(
+            restaurant_id=restaurant_id,
+            active=True,
+            type__in=['Waiter', 'Chef']
+        )
+        if not worker_qs.exists():
+            return JsonResponse({"error": "Access denied."}, status=403)
+
+        try:
+            data = json.loads(request.body)
+            updates = data.get('updates', [])
+            deletes = data.get('deletes', [])
+        except ValueError:
+            return JsonResponse({"error": "Invalid JSON."}, status=400)
+
+        for u in updates:
+            oid = u.get('order_id')
+            new_state = u.get('new_state')
+            table_order = get_object_or_404(TableOrder, pk=oid)
+            if table_order.table.id != int(table_id) or table_order.table.map.restaurant.id != int(restaurant_id):
+                return JsonResponse({"error": f"Order {oid} does not belong here."}, status=400)
+
+            valid = [s[0] for s in OrderState._meta.get_field("state").choices]
+            if new_state not in valid:
+                return JsonResponse({"error": f"Unrecognized state '{new_state}'."}, status=400)
+
+            state_obj = table_order.get_TableOrder_OrderStates.first()
+            if not state_obj:
+                state_obj = OrderState(table_order=table_order)
+
+            state_obj.state = new_state
+            state_obj.save()
+
+        for oid in deletes:
+            table_order = get_object_or_404(TableOrder, pk=oid)
+            if table_order.table.id != int(table_id) or table_order.table.map.restaurant.id != int(restaurant_id):
+                return JsonResponse({"error": f"Order {oid} does not belong here."}, status=400)
+            table_order.active = False
+            table_order.save()
+            table_order.get_TableOrder_OrderStates.all().delete()
+
+        return JsonResponse({"ok": True})
 class TableOpenView(View):
     def post(self, request, restaurant_id, table_id, *args, **kwargs):
-        print(restaurant_id)
-        print(request.user.get_User_Profile.get_Profile_Workers.first().restaurant_id)
         if request.user.get_User_Profile.get_Profile_Workers.first().restaurant_id != restaurant_id:
             return JsonResponse({"error": "Access denied."}, status=403)
-        print(table_id)
+
         table = get_object_or_404(Table, id=table_id)
+        new_code = "".join(random.choices(string.digits, k=5))
+        table.authentication_code = new_code
         table.open = True
         table.save()
 
-        return JsonResponse({"status": "success"}, status=200)
-
+        return JsonResponse({
+            "status": "success",
+            "authentication_code": new_code
+        }, status=200)
 
 class TableCloseView(View):
     def post(self, request, restaurant_id, table_id, *args, **kwargs):

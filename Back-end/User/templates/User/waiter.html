@@ -2,53 +2,31 @@
 {% load static tailwind_tags %}
 
 {% block content %}
-<div
-  id="waiter-app"
-  class="min-h-screen bg-[#fde68a] flex flex-col md:flex-row p-8 relative"
-  data-restaurant="{{ restaurant.id }}"
->
-    <div class="md:hidden mb-4">
-      <h1 class="text-3xl font-bold text-[#f87171] text-center">
-        {{ username }}
-      </h1>
-    </div>
+<div id="waiter-app" class="min-h-screen bg-[#fde68a] flex flex-col md:flex-row p-8 relative" data-restaurant="{{ restaurant.id }}">
+  <div class="md:hidden mb-4">
+    <h1 class="text-3xl font-bold text-[#f87171] text-center">
+      {{ username }}
+    </h1>
+  </div>
+
   <div class="w-full md:w-1/3 lg:w-1/4 bg-white rounded-lg shadow-lg p-4 mb-6 md:mb-0 md:mr-4 flex flex-col">
     <h2 class="text-2xl font-semibold text-[#f87171] mb-4">Pending Orders</h2>
     <div class="flex-1 overflow-y-auto">
-      <div
-        v-if="Object.keys(pendingByTable).length === 0"
-        class="text-gray-500 text-center mt-4"
-      >
+      <div v-if="Object.keys(pendingByTable).length === 0" class="text-gray-500 text-center mt-4">
         No pending orders.
       </div>
 
       <template v-else>
-        <div
-          v-for="(ordersArr, tableName) in pendingByTable"
-          :key="tableName"
-          class="mb-6"
-        >
+        <div v-for="(ordersArr, tableName) in pendingByTable" :key="tableName" class="mb-6">
           <h3 class="text-lg font-semibold text-gray-700 mb-2">
             Table: [[ tableName ]]
           </h3>
 
           <ul class="divide-y border rounded-lg">
-            <li
-              v-for="order in ordersArr"
-              :key="order.id"
-              class="flex justify-between items-center py-2 px-3"
-            >
+            <li v-for="order in ordersArr" :key="order.id" class="flex justify-between items-center py-2 px-3">
               <div class="flex items-center space-x-3">
-                <img
-                  v-if="order.image_url"
-                  :src="order.image_url"
-                  class="w-8 h-8 object-cover rounded-full border border-gray-300"
-                  alt="Item Image"
-                />
-                <div
-                  v-else
-                  class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-xs"
-                >
+                <img v-if="order.image_url" :src="order.image_url" class="w-8 h-8 object-cover rounded-full border border-gray-300" alt="Item Image"/>
+                <div v-else class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-xs">
                   No Img
                 </div>
                 <div class="flex flex-col">
@@ -58,10 +36,7 @@
                   </small>
                 </div>
               </div>
-              <button
-                @click="markDelivered(order)"
-                class="ml-4 px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-sm"
-              >
+              <button @click="markDelivered(order)" class="ml-4 px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-sm">
                 Delivered
               </button>
             </li>
@@ -72,21 +47,9 @@
   </div>
 
   <div class="w-full md:flex-1 flex flex-col">
-
-
     <div class="w-full overflow-x-auto mb-6 text-center justify-center">
       <div class="inline-flex space-x-2">
-        <button
-          v-for="map in maps"
-          :key="map.id"
-          @click="selectMap(map)"
-          :class="[ 
-            'px-4 py-2 rounded-full text-sm font-medium flex-shrink-0 transition-colors duration-200',
-            selectedMap && selectedMap.id === map.id
-              ? 'bg-[#f87171] text-white'
-              : 'bg-white text-gray-700 hover:bg-gray-200'
-          ]"
-        >
+        <button v-for="map in maps" :key="map.id" @click="selectMap(map)" :class="['px-4 py-2 rounded-full text-sm font-medium flex-shrink-0 transition-colors duration-200', selectedMap && selectedMap.id === map.id ? 'bg-[#f87171] text-white' : 'bg-white text-gray-700 hover:bg-gray-200']">
           [[ map.name ]]
         </button>
       </div>
@@ -96,133 +59,74 @@
       Please select a floor above.
     </div>
 
-    <div
-      v-if="selectedMap && mapData"
-      class="flex-1 w-full flex justify-center mb-6"
-    >
+    <div v-if="selectedMap && mapData" class="flex-1 w-full flex justify-center mb-6">
       <div class="bg-white rounded-lg shadow-lg p-6 overflow-auto max-w-full">
-        <div
-          id="map-grid"
-          class="inline-grid bg-[#f3f4f6] gap-0"
-          :style="gridStyle"
-        >
+        <div id="map-grid" class="inline-grid bg-[#f3f4f6] gap-0" :style="gridStyle">
           <template v-for="(cell, idx) in gridCells" :key="idx">
-            <div
-              class="border relative flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-[#f87171]"
-              :class="{
-                'occupied': cell.type === 'table' || cell.type === 'bar'
-              }"
-              :title="cellTooltip(cell)"
-              @click="cell.type === 'table' && onTableClick(cell)"
-            >
-              <img
-                v-if="cell.type === 'table'"
-                :src="tableImageFor(cell)"
-                class="absolute inset-0 w-full h-full object-cover"
-                alt="Table"
-              />
-              <img
-                v-else-if="cell.type === 'bar'"
-                :src="barImg"
-                class="absolute inset-0 w-full h-full object-cover"
-                alt="Bar"
-              />
-              <img
-                v-else-if="cell.type === 'stool'"
-                :src="stoolImg"
-                class="absolute inset-0 w-full h-full object-cover opacity-50"
-                alt="Stool"
-              />
+            <div class="border relative flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-[#f87171]" :class="{'occupied': cell.type === 'table' || cell.type === 'bar'}" :title="cellTooltip(cell)" @click="cell.type === 'table' && onTableClick(cell)">
+              <img v-if="cell.type === 'table'" :src="tableImageFor(cell)" class="absolute inset-0 w-full h-full object-cover" alt="Table"/>
+              <img v-else-if="cell.type === 'bar'" :src="barImg" class="absolute inset-0 w-full h-full object-cover" alt="Bar"/>
+              <img v-else-if="cell.type === 'stool'" :src="stoolImg" class="absolute inset-0 w-full h-full object-cover opacity-50" alt="Stool"/>
             </div>
           </template>
         </div>
       </div>
     </div>
 
-    <div
-      v-if="selectedMap && mapData && (mapData.w === 0 || mapData.h === 0)"
-      class="text-center text-gray-500 py-8"
-    >
+    <div v-if="selectedMap && mapData && (mapData.w === 0 || mapData.h === 0)" class="text-center text-gray-500 py-8">
       This floor has no dimensions.
     </div>
 
-    <div
-      v-if="showOrdersPanel"
-      class="fixed top-0 right-0 h-full w-96 bg-white shadow-lg z-50 flex flex-col min-h-0"
-    >
-      <div class="flex justify-between items-center px-4 py-2 border-b">
-        <div class="flex items-center space-x-2">
-          <h2 class="text-xl font-semibold">Table: [[ selectedTableName ]]</h2>
-
-          <button
-            v-if="selectedTableInfo && selectedTableInfo.calling_waiter"
-            @click="markTableAttended"
-            class="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
-          >
-            ATTENDED
-          </button>
+    <div v-if="showOrdersPanel" class="fixed top-0 right-0 h-full w-96 bg-white shadow-lg z-50 flex flex-col min-h-0">
+      <div class="flex justify-between items-start px-4 py-2 border-b">
+        <!-- Left: Table name, ATTENDED, Code, Modify Comanda -->
+        <div class="flex flex-col w-full">
+          <div class="flex items-center space-x-2">
+            <h2 class="text-xl font-semibold">Table: [[ selectedTableName ]]</h2>
+            <button v-if="selectedTableInfo && selectedTableInfo.calling_waiter" @click="markTableAttended" class="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200">
+              ATTENDED
+            </button>
+          </div>
+          <div class="flex justify-between items-center mt-2">
+            <p class="text-sm text-gray-600">
+              Code: <span class="font-mono">[[ selectedTableInfo.authentication_code ]]</span>
+            </p>
+            <button @click="openModifyComandaModal" class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm">
+              Modify Comanda
+            </button>
+          </div>
         </div>
 
-        <button @click="closeOrdersPanel" class="text-gray-500 hover:text-gray-700">
+        <button @click="closeOrdersPanel" class="text-gray-500 hover:text-gray-700 ml-2">
           ✕
         </button>
       </div>
 
-      <div
-        v-if="selectedTableInfo && !selectedTableInfo.open"
-        class="flex-1 flex flex-col justify-center items-center px-4 py-6"
-      >
+      <div v-if="selectedTableInfo && !selectedTableInfo.open" class="flex-1 flex flex-col justify-center items-center px-4 py-6">
         <p class="text-gray-600 mb-6">This table is currently closed.</p>
-        <button
-          @click="openTable"
-          class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white text-lg font-semibold rounded"
-        >
+        <button @click="openTable" class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white text-lg font-semibold rounded">
           OPEN TABLE
         </button>
       </div>
 
       <div v-else class="flex-1 flex flex-col min-h-0">
         <div class="flex-1 min-h-0 overflow-y-auto px-4 py-2">
-          <div
-            v-if="Object.values(groupedOrders).every(arr => arr.length === 0)"
-            class="text-gray-500 text-center mt-4"
-          >
+          <div v-if="Object.values(groupedOrders).every(arr => arr.length === 0)" class="text-gray-500 text-center mt-4">
             No orders for this table.
           </div>
 
           <div v-else class="space-y-6">
-            <template
-              v-for="(ordersInType, typeName) in groupedOrders"
-              :key="typeName"
-            >
+            <template v-for="(ordersInType, typeName) in groupedOrders" :key="typeName">
               <div v-if="ordersInType.length > 0" class="space-y-2">
                 <h3 class="text-lg font-semibold text-[#f87171]">
                   [[ typeName ]]
                 </h3>
 
                 <ul class="divide-y">
-                  <li
-                    v-for="order in ordersInType"
-                    :key="order.order_id"
-                    class="py-3 flex justify-between items-center"
-                    :class="{
-                      'bg-green-100':  order.state_key === 'Delivered, Enjoy your meal!',
-                      'bg-gray-100':   order.state_key === 'Waiting to be send to cook',
-                      'bg-orange-100': order.state_key === 'Waiting to be cooked',
-                      'bg-blue-100':   order.state_key === 'Waiting to be served'
-                    }"
-                  >
+                  <li v-for="order in ordersInType" :key="order.order_id" class="py-3 flex justify-between items-center" :class="{'bg-green-100':  order.state_key === 'Delivered, Enjoy your meal!','bg-gray-100':   order.state_key === 'Waiting to be send to cook','bg-orange-100': order.state_key === 'Waiting to be cooked','bg-blue-100':   order.state_key === 'Waiting to be served'}">
                     <div class="flex items-center space-x-3">
-                      <img
-                        v-if="order.icon_url"
-                        :src="order.icon_url"
-                        class="w-10 h-10 object-cover rounded-full border border-gray-300"
-                        alt="Food Image"
-                      />
-                      <div
-                        v-else
-                        class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-sm"
-                      >
+                      <img v-if="order.icon_url" :src="order.icon_url" class="w-10 h-10 object-cover rounded-full border border-gray-300"alt="Food Image"/>
+                      <div v-else class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-sm">
                         No Img
                       </div>
 
@@ -233,6 +137,7 @@
                         </small>
                       </div>
                     </div>
+
                     <span class="font-semibold">$[[ order.price.toFixed(2) ]]</span>
                   </li>
                 </ul>
@@ -247,37 +152,78 @@
             <span class="text-lg font-semibold">$[[ totalSpent.toFixed(2) ]]</span>
           </div>
 
-          <button
-            @click="confirmCloseModal = true"
-            class="mt-2 py-2 bg-red-500 hover:bg-red-600 text-white rounded text-center"
-          >
+          <button @click="confirmCloseModal = true" class="mt-2 py-2 bg-red-500 hover:bg-red-600 text-white rounded text-center">
             PAY AND CLOSE
           </button>
         </div>
       </div>
     </div>
 
-    <div
-      v-if="confirmCloseModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60"
-    >
+    <div v-if="confirmCloseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
       <div class="bg-white rounded-lg shadow-lg w-80 p-6">
         <h3 class="text-xl font-semibold mb-4 text-center">Confirm Payment</h3>
         <p class="text-gray-700 mb-6 text-center">
           Are you sure you want to pay and close this table?
         </p>
         <div class="flex justify-between">
-          <button
-            @click="actuallyCloseTable"
-            class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded flex-1 mr-2"
-          >
+          <button @click="actuallyCloseTable" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded flex-1 mr-2">
             Confirm
           </button>
-          <button
-            @click="confirmCloseModal = false"
-            class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded flex-1"
-          >
+          <button @click="confirmCloseModal = false" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded flex-1">
             Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showModifyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg w-96 max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center px-4 py-3 border-b">
+          <h3 class="text-lg font-semibold">Edit Orders for [[ selectedTableName ]]</h3>
+          <button @click="cancelModifyComanda" class="text-gray-500 hover:text-gray-700">✕</button>
+        </div>
+
+        <div class="px-4 py-2 space-y-6">
+          <template v-if="modifyOrders.length === 0">
+            <p class="text-gray-500 text-center">No orders to modify.</p>
+          </template>
+
+          <template v-else>
+            <template v-for="(ordersInType, typeName) in groupedModifyOrders" :key="typeName">
+              <div v-if="ordersInType.length > 0" class="space-y-2">
+                <h3 class="text-lg font-semibold text-[#f87171]">[[ typeName ]]</h3>
+                <ul class="divide-y">
+                  <li v-for="morder in ordersInType" :key="morder.order_id" class="py-3 flex justify-between items-center">
+                    <div class="flex items-center space-x-3">
+                      <div class="flex flex-col">
+                        <span class="font-medium">[[ morder.item_name ]]</span>
+                        <span class="text-sm text-gray-600">$[[ morder.price.toFixed(2) ]]</span>
+                      </div>
+                    </div>
+
+                    <select v-model="morder.new_state" class="border rounded px-2 py-1 text-sm">
+                      <option v-for="(label, key) in stateOptions" :key="key" :value="key">
+                        [[ label ]]
+                      </option>
+                    </select>
+
+                    <label class="flex items-center space-x-1">
+                      <input type="checkbox" v-model="morder.to_delete" class="accent-red-500"/>
+                      <span class="text-sm text-red-600">Delete</span>
+                    </label>
+                  </li>
+                </ul>
+              </div>
+            </template>
+          </template>
+        </div>
+
+        <div class="px-4 py-3 border-t flex justify-end space-x-2">
+          <button @click="cancelModifyComanda" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded">
+            Cancel
+          </button>
+          <button @click="saveModifyComanda" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded">
+            Save Changes
           </button>
         </div>
       </div>
@@ -310,17 +256,30 @@
         selectedTableId: null,
         selectedTableName: '',
         selectedTableInfo: null,
+
         orders: [],
         totalSpent: 0,
         ordersPolling: null,
 
         pendingByTable: {},
 
-        confirmCloseModal: false
+        confirmCloseModal: false,
+
+        showModifyModal: false,
+        modifyOrders: []
       };
     },
 
     computed: {
+      stateOptions() {
+        return {
+          'Waiting to be cooked':       'Waiting to be cooked',
+          'Waiting to be served':       'Waiting to be served',
+          'Waiting to be send to cook': 'Waiting to be send to cook',
+          'Delivered, Enjoy your meal!':'Delivered, Enjoy your meal!',
+        };
+      },
+
       gridCells() {
         if (!this.mapData) return [];
         const w = this.mapData.w, h = this.mapData.h;
@@ -339,10 +298,11 @@
                 const i = idxAt(c.x, c.y);
                 cells[i].type = 'table';
                 cells[i].tableInfo = {
-                  id:             tbl.id,
-                  name:           tbl.name,
-                  open:           tbl.open,
-                  calling_waiter: tbl.calling_waiter
+                  id:                  tbl.id,
+                  name:                tbl.name,
+                  open:                tbl.open,
+                  calling_waiter:      tbl.calling_waiter,
+                  authentication_code: tbl.authentication_code || ""
                 };
               }
             });
@@ -416,6 +376,26 @@
           }
         });
         return buckets;
+      },
+
+      groupedModifyOrders() {
+        const buckets = {
+          'To share':     [],
+          'First plate':  [],
+          'Second plate': [],
+          'Dessert':      [],
+          'Drink':        []
+        };
+        if (!Array.isArray(this.modifyOrders)) {
+          return buckets;
+        }
+        this.modifyOrders.forEach(mo => {
+          const t = mo.type;
+          if (t in buckets) {
+            buckets[t].push(mo);
+          }
+        });
+        return buckets;
       }
     },
 
@@ -484,15 +464,27 @@
         if (!this.selectedTableId || !this.selectedMap) return;
         fetch(
           `/restaurant/${this.restaurantID}/maps/` +
-          `${this.selectedMap.id}/tables/` +
-          `${this.selectedTableId}/orders_waiter/`
+          `${this.selectedMap.id}/tables/${this.selectedTableId}/orders_waiter/`
         )
-          .then(r => r.json())
-          .then(data => {
-            this.orders     = data.orders || [];
-            this.totalSpent = data.total || 0;
-          })
-          .catch(err => console.error("Failed to fetch table orders:", err));
+        .then(r => r.json())
+        .then(data => {
+          this.orders     = data.orders || [];
+          this.totalSpent = data.total   || 0;
+
+          const prevCall = this.selectedTableInfo?.calling_waiter;
+          const newCall  = !!data.table_callWaiter;
+          const newCode  = data.table_authCode || "";
+
+          if (prevCall === false && newCall === true) {
+            this.refreshTablePanel();
+          }
+
+          if (this.selectedTableInfo) {
+            this.selectedTableInfo.calling_waiter     = newCall;
+            this.selectedTableInfo.authentication_code = newCode;
+          }
+        })
+        .catch(err => console.error("Failed to fetch table orders:", err));
       },
 
       closeOrdersPanel() {
@@ -539,7 +531,7 @@
         })
         .then(() => {
           this.confirmCloseModal = false;
-          this.refreshTablePanel();
+          this.closeOrdersPanel();
         })
         .catch(err => {
           console.error(err);
@@ -597,34 +589,100 @@
           .catch(err => console.error("Failed to fetch to‐deliver orders:", err));
       },
 
-
       markDelivered(order) {
-   fetch(
-     `/restaurant/${this.restaurantID}/orders/${order.id}/delivered`, {
-       method: 'POST',
-       credentials: 'same-origin',
-       headers: {
-         'X-CSRFToken': '{{ csrf_token }}'
-       }
-     }
-   )
-   .then(r => {
-     if (!r.ok) throw new Error("Failed to mark delivered");
-     return r.json();
-   })
-   .catch(err => {
-     console.error(err);
-     alert("Could not mark as delivered. Please try again.");
-   });
+        fetch(
+          `/restaurant/${this.restaurantID}/orders/${order.id}/delivered`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}'
+            }
+          }
+        )
+        .then(r => {
+          if (!r.ok) throw new Error("Failed to mark delivered");
+          return r.json();
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Could not mark as delivered. Please try again.");
+        });
       },
-           },
+
+      openModifyComandaModal() {
+        this.modifyOrders = this.orders.map(o => ({
+          order_id:       o.order_id,
+          item_name:      o.item_name,
+          price:          o.price,
+          type:           o.type,
+          original_state: o.state_key,
+          new_state:      o.state_key,
+          to_delete:      false
+        }));
+        this.showModifyModal = true;
+      },
+
+      cancelModifyComanda() {
+        this.modifyOrders = [];
+        this.showModifyModal = false;
+      },
+
+      async saveModifyComanda() {
+        const updates = [];
+        const deletes = [];
+
+        this.modifyOrders.forEach(mo => {
+          if (mo.to_delete) {
+            deletes.push(mo.order_id);
+          } else if (mo.new_state !== mo.original_state) {
+            updates.push({
+              order_id: mo.order_id,
+              new_state: mo.new_state
+            });
+          }
+        });
+
+        if (updates.length === 0 && deletes.length === 0) {
+          this.cancelModifyComanda();
+          return;
+        }
+
+        try {
+          const resp = await fetch(
+            `/restaurant/${this.restaurantID}/orders/${this.selectedTableId}/update_comanda/`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+              },
+              body: JSON.stringify({
+                updates: updates,
+                deletes: deletes
+              })
+            }
+          );
+          const json = await resp.json();
+          if (!resp.ok || !json.ok) {
+            throw new Error(json.error || 'Server rejected changes');
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Could not save changes. Please try again.");
+          return;
+        }
+
+        this.fetchTableOrders();
+        this.cancelModifyComanda();
+      }
+    },
 
     mounted() {
       const el = document.getElementById('waiter-app');
       this.restaurantID = el.getAttribute('data-restaurant');
       this.fetchMaps();
       this.fetchPendingOrders();
-      setInterval(() => this.fetchPendingOrders(), 1000)
+      setInterval(() => this.fetchPendingOrders(), 1000);
     },
 
     beforeUnmount() {

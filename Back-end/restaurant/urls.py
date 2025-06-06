@@ -38,6 +38,7 @@ urlpatterns = [
                         path('<int:restaurant_id>/maps/<int:map_id>/tables/<int:table_id>/orders_waiter/',TableOrdersViewWaiter.as_view(), name='table_orders_for_waiter'),
                         path('<int:restaurant_id>/orders/to_deliver/', ToDeliverOrdersView.as_view(), name='orders_to_deliver'),
                         path('<int:restaurant_id>/orders/<int:pk>/delivered', DeliveredOrdersView.as_view(), name='order_delivered'),
+                        path('<restaurant_id>/orders/<table_id>/update_comanda/', UpdateComandaView.as_view(), name='update_comanda'),
                         path('<int:restaurant_id>/table/<int:table_id>/open/',TableOpenView.as_view(),name='table_open'),
                         path('<int:restaurant_id>/table/<int:table_id>/close/',TableCloseView.as_view(),name='table_close'),
                         path('<int:restaurant_id>/table/<int:table_id>/attended/',TableAttendedView.as_view(),name='table_attended'),
