@@ -23,9 +23,6 @@ urlpatterns = [
         path('<int:restaurant_id>/menu/categories/', CategoriesView.as_view(), name='categories_restaurant'),
         path('<int:restaurant_id>/menu/categories/<int:category_id>/elements/', CategoryElementsView.as_view(), name='category_elements_restaurant'),
 
-                # ====== Orders ====== #
-        path('<int:restaurant_id>/orders/pending/', PendingOrdersView.as_view(), name='orders_pending'),
-        path('<int:restaurant_id>/orders/<int:pk>/complete/', CompleteOrderView.as_view(), name='order_complete'),
 
                 # ====== Workers ====== #
         path('<int:restaurant_id>/maps/', MapsListView.as_view(), name='maps_list'),
@@ -33,10 +30,14 @@ urlpatterns = [
         
                                 # ====== Chef ====== #
                         path('<int:restaurant_id>/maps/<int:map_id>/tables/<int:table_id>/orders/', TableOrdersViewChef.as_view(), name='table_orders_for_chef'),
-
+                        path('<int:restaurant_id>/orders/pending/', PendingCookingOrdersView.as_view(), name='orders_pending_chef'),
+                        path('<int:restaurant_id>/orders/<int:pk>/complete/', CompleteOrderView.as_view(), name='order_complete'),
+                        
                                 # ====== Waiter ====== #
                         path('<int:restaurant_id>/maps/<int:map_id>/detail/', MapDetailView.as_view(), name='map_detail'),
                         path('<int:restaurant_id>/maps/<int:map_id>/tables/<int:table_id>/orders_waiter/',TableOrdersViewWaiter.as_view(), name='table_orders_for_waiter'),
+                        path('<int:restaurant_id>/orders/to_deliver/', ToDeliverOrdersView.as_view(), name='orders_to_deliver'),
+                        path('<int:restaurant_id>/orders/<int:pk>/delivered', DeliveredOrdersView.as_view(), name='order_delivered'),
                         path('<int:restaurant_id>/table/<int:table_id>/open/',TableOpenView.as_view(),name='table_open'),
                         path('<int:restaurant_id>/table/<int:table_id>/close/',TableCloseView.as_view(),name='table_close'),
                         path('<int:restaurant_id>/table/<int:table_id>/attended/',TableAttendedView.as_view(),name='table_attended'),

@@ -1,0 +1,127 @@
+>>> Running makemigrations…
+    • makemigrations done.
+>>> Running migrate…
+    • migrate done.
+>>> Clearing existing data from all tables…
+>>> Database cleared.
+
+=== Creating (or updating) allergens ===
+  • Icon set for: Gluten
+  • Created allergen: Gluten
+  • Icon set for: Crustaceans
+  • Created allergen: Crustaceans
+  • Icon set for: Egg
+  • Created allergen: Egg
+  • Icon set for: Fish
+  • Created allergen: Fish
+  • Icon set for: Peanuts
+  • Created allergen: Peanuts
+  • Icon set for: Soybeans
+  • Created allergen: Soybeans
+  • Icon set for: Milk
+  • Created allergen: Milk
+  • Icon set for: Treenuts
+  • Created allergen: Treenuts
+  • Icon set for: Celery
+  • Created allergen: Celery
+  • Icon set for: Mustard
+  • Created allergen: Mustard
+  • Icon set for: Sesame
+  • Created allergen: Sesame
+  • Icon set for: Lupin
+  • Created allergen: Lupin
+  • Icon set for: Molluscs
+  • Created allergen: Molluscs
+=== Done with allergens. Total in DB: 13 ===
+
+=== Creating owner user/profile ===
+  • Created User: Oyuki_Katsu / gjaraizm@gmail.com
+  • Picked random owner icon: PerfilOyuki.png
+  • Created Profile for owner: Oyuki_Katsu
+
+=== Creating restaurant “ASADOR MONTEQUINTO” ===
+  • Saved restaurant icon from owner’s profile picture (PerfilOyuki.png)
+  • Created Restaurant: ASADOR MONTEQUINTO
+
+=== Creating worker users/profiles ===
+  • Created user: CHEF_TEST / xgjarmor597@ieshnosmachado.org (password=default1234)
+    • Picked random worker icon: image-removebg-preview.png
+    • Created Profile for worker: CHEF_TEST
+    • Created Worker: CHEF_TEST as Chef (code 12345)
+  • Created user: WAITER_TEST / pwpvivaecyp@gmail.com (password=default1234)
+    • Picked random worker icon: image-removebg-preview.png
+    • Created Profile for worker: WAITER_TEST
+    • Created Worker: WAITER_TEST as Waiter (code 54321)
+
+=== Creating menu, categories, and category elements ===
+  • Created Menu for restaurant ASADOR MONTEQUINTO
+  • Created Category: Drinks
+    • Created CategoryElement: Mineral Water (in Drinks)
+    • Created CategoryElement: Coca‐Cola (in Drinks)
+    • Created CategoryElement: Beer (Caña) (in Drinks)
+    • Created CategoryElement: Red Wine Glass (in Drinks)
+    • Created CategoryElement: Orange Juice (in Drinks)
+  • Created Category: Starters
+    • Created CategoryElement: Patatas Bravas (in Starters)
+    • Created CategoryElement: Gazpacho Andaluz (in Starters)
+    • Created CategoryElement: Jamón Ibérico Platter (in Starters)
+    • Created CategoryElement: Croquetas de Jamón (in Starters)
+    • Created CategoryElement: Ensalada Mixta (in Starters)
+  • Created Category: Main Courses
+    • Created CategoryElement: Entrecôte Steak (in Main Courses)
+    • Created CategoryElement: Pollo Asado (in Main Courses)
+    • Created CategoryElement: Paella Valenciana (in Main Courses)
+    • Created CategoryElement: Bacalao a la Vizcaína (in Main Courses)
+    • Created CategoryElement: Lomo a la Navarra (in Main Courses)
+  • Created Category: Desserts
+    • Created CategoryElement: Flan Casero (in Desserts)
+    • Created CategoryElement: Churros con Chocolate (in Desserts)
+    • Created CategoryElement: Tarta de Queso (in Desserts)
+
+=== Creating maps, tables, and bars ===
+  • Created Map: COMEDOR (26×24)
+    • Created Table: COMEDOR_tbl_01 at (0,7) code=00001
+    • Created Table: COMEDOR_tbl_02 at (5,7) code=00002
+    • Created Table: COMEDOR_tbl_03 at (10,7) code=00003
+    • Created Table: COMEDOR_tbl_04 at (15,7) code=00004
+    • Created Table: COMEDOR_tbl_05 at (20,7) code=00005
+    • Created Table: COMEDOR_tbl_06 at (0,12) code=00006
+    • Created Table: COMEDOR_tbl_07 at (5,12) code=00007
+    • Created Table: COMEDOR_tbl_08 at (10,12) code=00008
+    • Created Table: COMEDOR_tbl_09 at (15,12) code=00009
+    • Created Table: COMEDOR_tbl_10 at (20,12) code=00010
+    • Created Table: COMEDOR_tbl_11 at (0,17) code=00011
+    • Created Table: COMEDOR_tbl_12 at (5,17) code=00012
+    • Created Table: COMEDOR_tbl_13 at (10,17) code=00013
+    • Created Table: COMEDOR_tbl_14 at (15,17) code=00014
+    • Created Table: COMEDOR_tbl_15 at (20,17) code=00015
+    • Created Table: COMEDOR_tbl_16 at (0,22) code=00016
+    • Created Table: COMEDOR_tbl_17 at (5,22) code=00017
+    • Created Table: COMEDOR_tbl_18 at (10,22) code=00018
+    • Created Table: COMEDOR_tbl_19 at (15,22) code=00019
+    • Created Table: COMEDOR_tbl_20 at (20,22) code=00020
+    • Created Bar for COMEDOR at (24,0)
+  • Finished setting up COMEDOR (tables + bar).
+
+  • Created Map: SALA DE EVENTOS (26×17)
+    • Created Table: SALAEV_tbl_1 at (0,7) code=00101
+    • Created Table: SALAEV_tbl_2 at (5,7) code=00102
+    • Created Table: SALAEV_tbl_3 at (10,7) code=00103
+    • Created Table: SALAEV_tbl_4 at (15,7) code=00104
+    • Created Table: SALAEV_tbl_5 at (20,7) code=00105
+    • Created Bar for SALA DE EVENTOS at (24,0)
+  • Finished setting up SALA DE EVENTOS (tables + bar).
+
+
+=== INITIAL DATA SCRIPT COMPLETE ===
+Restaurant “ASADOR MONTEQUINTO” now has:
+  • 2 workers
+  • 1 menu
+  • 4 categories
+  • 18 elements
+  • 2 maps
+  • 25 tables
+  • 2 bars
+
+**If you saw any “already exists” messages, it means this script was run before or some data was partially created.**
+Everything that did not exist has now been created.

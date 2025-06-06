@@ -65,7 +65,7 @@
     </template>
 
     <div v-if="selectedMap && tables.length === 0" class="text-center text-gray-500 py-8">
-      No tables found on this floor.
+      No tables found opened on this floor.
     </div>
 
     <div v-if="!selectedMap" class="text-center text-gray-500 py-8">
@@ -191,11 +191,11 @@
     this.fetchMaps();
 
     this.pollingInterval = setInterval(() => {
-      if (this.selectedMap) {
-        this.fetchTables();
-      }
-    }, 1000);
-  },
+        if (this.selectedMap) {
+          this.fetchTables();
+        }
+      }, 1000);
+    },
 
     beforeUnmount() {
       clearInterval(this.pollingInterval);
