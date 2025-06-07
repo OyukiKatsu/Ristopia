@@ -105,7 +105,7 @@ DATABASES = {
          'USER': 'admin',
          'PASSWORD': 'adminristopia',
          'HOST': 'localhost',
-         'PORT': '',
+         'PORT': '5432',
      }
  }
 
