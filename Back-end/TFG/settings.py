@@ -30,9 +30,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-czqt_9_*$+^5+o)qlyc4!japgnd$jg!0k430!vy*@w20ai0i4q'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["18.235.174.190", "localhost", "ristopia.jarsoft.es"]
 
 
 # Application definition
