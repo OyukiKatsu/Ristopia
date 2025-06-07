@@ -605,7 +605,7 @@
         })
         .catch(err => {
           console.error(err);
-          alert("Could not mark as delivered. Please try again.");
+          toastr.info("Could not mark as delivered. Please try again.");
         });
       },
 

@@ -1,5 +1,6 @@
-# add_initial_data.py
-
+# Initial_DATA.py
+#python manage.py shell
+#exec(open('Initial_DATA.py', encoding='utf-8').read())
 import os
 import random
 import django

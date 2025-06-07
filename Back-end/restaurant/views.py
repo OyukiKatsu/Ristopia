@@ -32,9 +32,12 @@ class TableView(TemplateView):
             table_id = data['table_id']
         except signing.BadSignature:
             raise SuspiciousOperation("Invalid table link")
+        try:
+            restaurant = Restaurante.objects.get(pk=rest_id)
+            table      = Table.objects.get(pk=table_id, map__restaurant=restaurant)
+        except:
+            raise SuspiciousOperation("Invalid table link")
 
-        restaurant = get_object_or_404(Restaurante, pk=rest_id)
-        table      = get_object_or_404(Table, pk=table_id, map__restaurant=restaurant)
         menu = Menu.objects.filter(restaurant=restaurant).first()
 
         if menu:

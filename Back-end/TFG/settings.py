@@ -90,27 +90,24 @@ WSGI_APPLICATION = 'TFG.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'nombre_base_datos',
-#         'USER': 'usuario',
-#         'PASSWORD': 'contraseña',
-#         'HOST': 'localhost',
-#         'PORT': '3306',
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
-#crtl + k + c Para comentar
-# crtl + k + u Para descomentar 
 
+
+DATABASES = {
+     'default': {
+         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+         'NAME': 'ristopia',
+         'USER': 'admin',
+         'PASSWORD': 'adminristopia',
+         'HOST': 'localhost',
+         'PORT': '',
+     }
+ }
 
 
 # Password validation
