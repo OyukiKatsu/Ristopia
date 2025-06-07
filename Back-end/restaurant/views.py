@@ -66,7 +66,6 @@ class AuthCodeView(View):
     Body JSON: { "code": "<5-char code>" }
     """
     def post(self, request, token, *args, **kwargs):
-        import json
         try:
             data = json.loads(request.body)
             code = data.get('code','').strip()
