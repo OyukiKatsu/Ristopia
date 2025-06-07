@@ -1,0 +1,80 @@
+{% extends 'core/core.html' %}
+
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-[#fde68a] flex items-center justify-center px-4 py-12">
+  <div class="form-container bg-[#fef3c7] p-8 rounded-xl shadow-xl w-full max-w-md">
+    <h2 class="text-3xl font-bold text-center text-[#f87171] mb-6">Create Your Account</h2>
+
+    <form method="POST" action="" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="inputGroup">
+        <input type="text" name="username" required autocomplete="off">
+        <label>Username</label>
+      </div>
+
+      <div class="inputGroup">
+        <input type="email" name="email" required autocomplete="off">
+        <label>Email</label>
+      </div>
+
+      <div class="inputGroup">
+        <input type="password" name="password1" id="password1" required>
+        <label>Password</label>
+      </div>
+
+      <div class="inputGroup">
+        <input type="password" name="password2" id="password2" required>
+        <label>Repeat Password</label>
+      </div>
+
+      <div class="inputGroup">
+        <input type="file" name="profile_picture" accept="image/*">
+        <label>Profile Picture</label>
+      </div>
+
+      <div class="inputGroup">
+        <input type="text" name="restaurant_name" required autocomplete="off">
+        <label>Restaurant Name</label>
+      </div>
+
+      <div class="inputGroup">
+        <input type="file" name="restaurant_icon" accept="image/*">
+        <label>Restaurant Picture</label>
+      </div>
+
+      <button type="submit" id="submit-btn"
+        class="w-full mt-4 bg-[#f87171] text-white font-bold py-2 px-4 rounded-full shadow hover:bg-[#ef4444] disabled:opacity-50 transition-all duration-300"
+        disabled>
+        Register
+      </button>
+
+      <!-- Login redirect text -->
+      <p class="text-sm text-right text-[#6b7280] mt-3">
+        Already have an account? Go to
+        <a href="{% url 'custom_login' %}" class="text-[#f87171] hover:text-[#ef4444] font-medium">Log In</a>
+      </p>
+    </form>
+  </div>
+</div>
+<script>
+  // Enable submit only if all fields are filled and passwords match
+  const password1 = document.getElementById('password1');
+  const password2 = document.getElementById('password2');
+  const submitBtn = document.getElementById('submit-btn');
+
+  const validateForm = () => {
+    const allFilled = [...document.querySelectorAll('.inputGroup input')].every(
+      input => input.value.trim() !== ''
+    );
+    const passwordsMatch = password1.value === password2.value;
+    submitBtn.disabled = !(allFilled && passwordsMatch);
+  };
+
+  document.querySelectorAll('.inputGroup input').forEach(input => {
+    input.addEventListener('input', validateForm);
+  });
+</script>
+{% endblock content %}

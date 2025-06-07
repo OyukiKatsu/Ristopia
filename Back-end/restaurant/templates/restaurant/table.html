@@ -1,0 +1,498 @@
+{% extends 'restaurant/coreRestaurant.html' %}
+{% load static tailwind_tags %}
+
+{% block content %}
+  {% if not table.open %}
+    <div class="min-h-screen flex flex-col items-center justify-center bg-yellow-100">
+      <h2 class="text-2xl font-semibold text-gray-700 mb-4">This table is currently closed.</h2>
+      <p class="text-gray-600 mb-6">Please wait for a waiter to open the table.</p>
+    </div>
+    <script>
+      setTimeout(() => location.reload(), 5000);
+    </script>
+  {% else %}
+    <div id="table-app" class="min-h-screen bg-yellow-200 flex flex-col">
+
+      <!-- Header with Auth Button -->
+      <header class="bg-white shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between z-10">
+        <div class="flex items-center mb-2 sm:mb-0">
+          {% if restaurant.icon %}
+            <img src="{{ restaurant.icon.url }}"
+                alt="{{ restaurant.name }}"
+                class="w-10 h-10 rounded-full mr-3 object-cover">
+          {% endif %}
+          <h1 class="text-xl font-bold">{{ restaurant.name }}</h1>
+        </div>
+
+        <div class="flex space-x-2 self-end">
+          <!-- Authenticate/View Code Button -->
+          <button
+            @click="authenticated ? showYourCode() : openAuthModal()"
+            class="px-2 py-1 rounded-full text-xs sm:text-sm font-medium
+                  bg-yellow-400 text-white hover:bg-yellow-500"
+          >
+            [[ authenticated ? 'View Code' : 'Authenticate Here' ]]
+          </button>
+
+          <!-- Call Waiter Button -->
+          <button
+            @click="callWaiter"
+            class="px-2 py-1 rounded-full text-xs sm:text-sm font-medium
+                  bg-blue-500 text-white hover:bg-blue-600"
+          >
+            Call Waiter
+          </button>
+        </div>
+      </header>
+
+      <!-- Category Bar -->
+      <nav class="bg-yellow-100 overflow-x-auto whitespace-no-wrap p-2 z-0">
+        <transition-group tag="div" name="cat" enter-active-class="animate__animated animate__fadeInRight" leave-active-class="animate__animated animate__fadeOutLeft" class="inline-flex space-x-2">
+          <button v-for="cat in categories" :key="cat.id" @click="selectCategory(cat.id)" :class="['px-4 py-2 rounded-full text-sm font-medium flex-shrink-0', selected === cat.id ? 'bg-yellow-400 text-white' : 'bg-white text-gray-700']">
+            [[ cat.name ]]
+          </button>
+        </transition-group>
+      </nav>
+
+      <!-- Elements Grid -->
+      <main class="flex-1 overflow-y-auto p-4 z-0">
+        <transition-group tag="div" name="item" class="space-y-4" enter-active-class="animate__animated animate__fadeInUp" leave-active-class="animate__animated animate__fadeOutDown">
+          <div v-for="item in elements" :key="item.id" class="relative bg-white rounded-lg shadow p-4 cursor-pointer hover:border-yellow-500 hover:shadow-lg" @click="addToOrder(item)">
+            <div class="absolute top-2 right-2 text-gray-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+              </svg>
+            </div>
+
+            <div class="flex items-start space-x-3">
+              <div class="flex-shrink-0">
+                <img v-if="item.icon_url" :src="item.icon_url" class="w-20 h-20 rounded object-cover"/>
+                <div v-else class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs">
+                  No Image
+                </div>
+              </div>
+
+              <div class="flex-1">
+                <h2 class="font-semibold text-base">[[ item.name ]]</h2>
+                <p class="text-sm text-gray-600 mt-1 line-clamp-2">[[ item.description ]]</p>
+                <p class="text-sm text-green-600 font-medium mt-2">€[[ item.price ]]</p>
+
+                <div v-if="item.allergens && item.allergens.length" class="flex space-x-1 mt-2">
+                  <template v-for="(alg, idx) in item.allergens" :key="idx">
+                    <img v-if="alg.icon_url" :src="alg.icon_url" :alt="alg.name" :title="alg.name" class="w-4 h-4"/>
+                    <span v-else class="text-xs text-gray-500" :title="alg.name">[[ alg.name[0].toUpperCase() ]]</span>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+        </transition-group>
+
+        <p v-if="elements.length === 0" class="text-center text-gray-500 mt-10">
+          No items available in this category.
+        </p>
+      </main>
+
+      <!-- View My Orders button -->
+      <button v-if="existingOrders.length > 0" @click="showExistingOrdersModal = true" class="fixed top-4 right-4 bg-blue-600 text-white p-2 rounded-full shadow-lg z-20" title="My Orders">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5h6m-6 7h6m-6 7h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/>
+        </svg>
+      </button>
+
+      <!-- New Order button -->
+      <button v-if="orderItems.length > 0" @click="showOrderModal = true" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg z-20">
+        <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2l4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>Confirm Order ([[ groupedOrder.length ]])</span>
+      </button>
+
+
+      <!-- ORDER SUMMARY MODAl -->
+      <div v-if="showOrderModal" @click.self="showOrderModal = false" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6 overflow-y-auto max-h-[90vh]">
+          <h3 class="text-xl font-semibold mb-4">Your Order</h3>
+
+          <p v-if="groupedOrder.length === 0" class="text-gray-500 mb-4">
+            You haven't selected any dishes yet.
+          </p>
+
+          <div v-for="entry in groupedOrder" :key="entry.item.id" class="mb-4 flex items-center">
+            <img v-if="entry.item.icon_url" :src="entry.item.icon_url" class="w-12 h-12 rounded object-cover mr-3">
+            <div v-else class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs mr-3">
+              No Image
+            </div>
+            <div class="flex-1">
+              <h4 class="font-medium">[[ entry.item.name ]]</h4>
+              <p class="text-sm text-gray-600">€[[ entry.item.price ]] each</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button @click="decrement(entry.item.id)" class="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full">-</button>
+              <span>[[ entry.qty ]]</span>
+              <button @click="increment(entry.item.id)" class="w-6 h-6 flex items-center justify-center bg-gray-200 rounded-full">+</button>
+              <button @click="removeEntire(entry.item.id)" class="ml-2 text-red-500 hover:text-red-700">✕</button>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-between items-center">
+            <button @click="showOrderModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Close</button>
+
+            <button v-if="authenticated" @click="confirmOrder" class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600">Confirm Order</button>
+            <span v-else class="text-sm italic text-gray-500">
+              Authenticate to order
+            </span>
+          </div>
+        </div>
+      </div>
+
+
+    <!-- EXISTING ORDERS MODAL -->
+      <div v-if="showExistingOrdersModal" @click.self="showExistingOrdersModal = false" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md max-h-full overflow-y-auto p-6">
+          <h3 class="text-xl font-semibold mb-4">My Orders</h3>
+
+          <!-- If no existing orders -->
+          <p v-if="existingOrders.length === 0" class="text-gray-500 mb-4">
+            No orders found.
+          </p>
+
+          <!-- List each saved order -->
+          <div v-for="ord in existingOrders" :key="ord.order_id" class="mb-4 flex items-center space-x-3">
+            <!-- Item image -->
+            <img v-if="ord.icon_url" :src="ord.icon_url" class="w-12 h-12 rounded object-cover"/>
+            <div v-else class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs">
+              No Image
+            </div>
+
+            <!-- Name + price -->
+            <div class="flex-1">
+              <h4 class="font-medium">[[ ord.item_name ]]</h4>
+              <p class="text-sm text-gray-600">€[[ ord.price ]]</p>
+            </div>
+
+            <!-- State with color + optional bounce animation -->
+            <div class="flex-shrink-0">
+              <!-- Animate for “Waiting to be cooked” or “Waiting to be served” -->
+              <template v-if="ord.state_key === 'Waiting to be cooked' || ord.state_key === 'Waiting to be served'">
+                <div class="bounce-text" :class="{'text-orange-500': ord.state_key === 'Waiting to be cooked','text-blue-500':   ord.state_key === 'Waiting to be served'}">
+                  <span v-for="(ch, idx) in ord.state_display.split('')" :key="idx">[[ ch ]]</span>
+                </div>
+              </template>
+
+              <!-- Plain text for the other two states -->
+              <template v-else>
+                <span class="text-sm font-medium whitespace-nowrap" :class="{ 'text-gray-500':   ord.state_key === 'Waiting to be send to cook','text-green-500':  ord.state_key === 'Delivered, Enjoy your meal!'}">
+                  [[ ord.state_display ]]
+                </span>
+              </template>
+            </div>
+          </div>
+
+          <!-- TOTAL at bottom -->
+          <div class="border-t pt-4 mt-4 text-right font-semibold text-lg">
+            TOTAL: €[[ totalAmount ]]
+          </div>
+
+          <!-- Close button -->
+          <div class="mt-4 flex justify-center">
+            <button @click="showExistingOrdersModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+
+      <!-- AUTH CODE MODAL -->
+      <div v-if="showAuth" @click.self="showAuth=false; authError=null" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-30">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-sm p-6">
+          <h3 class="text-lg font-semibold mb-4">Enter 5-char Code</h3>
+          <input v-model="authInput" maxlength="5" class="w-full border p-2 rounded mb-2" placeholder="ABCDE">
+          <p v-if="authError" class="text-red-500 text-sm mb-2">[[ authError ]]</p>
+          <div class="flex justify-end">
+            <button @click="showAuth=false" class="px-4 py-2 rounded mr-2">Cancel</button>
+            <button @click="submitAuth" class="px-4 py-2 bg-yellow-400 text-white rounded">Submit</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW CODE MODAL -->
+      <div v-if="showCode" @click.self="showCode=false" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-30">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-xs p-6 text-center">
+          <h3 class="font-semibold mb-4">Your Table Code</h3>
+          <p class="text-2xl font-mono mb-4">[[ authCode ]]</p>
+          <button @click="showCode=false" class="px-4 py-2 bg-yellow-400 text-white rounded">Close</button>
+        </div>
+      </div>
+
+    </div>
+    <script>
+      const { createApp } = Vue;
+
+      createApp({
+        delimiters: ['[[', ']]'],
+        data() {
+          return {
+            categories: [],
+            elements: [],
+            selected: null,
+
+            // Auth
+            showAuth: false,
+            showCode: false,
+            authInput: '',
+            authError: null,
+            authenticated: false,
+            authCode: '',
+
+            // New order
+            orderItems: [],
+            showOrderModal: false,
+
+            // Existing orders
+            existingOrders: [],          
+            showExistingOrdersModal: false
+          };
+        },
+        computed: {
+          groupedOrder() {
+            const map = {};
+            for (const it of this.orderItems) {
+              if (!map[it.id]) {
+                map[it.id] = { item: it, qty: 0 };
+              }
+              map[it.id].qty++;
+            }
+            return Object.values(map);
+          },
+          totalAmount() {
+            return this.existingOrders.reduce((sum, ord) => {
+              return sum + parseFloat(ord.price);
+            }, 0).toFixed(2);
+          }
+        },
+        methods: {
+          getCSRFToken() {
+            return this.getCookie('csrftoken');
+          },
+          getCookie(name) {
+            return document.cookie.split('; ').reduce((r, v) =>
+              v.startsWith(name + '=') ? v.split('=')[1] : r, ''
+            );
+          },
+          setCookie(name, val) {
+            document.cookie = `${name}=${val}; path=/;`;
+          },
+          callWaiter() {
+            fetch(window.location.pathname + 'call_waiter/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCSRFToken()
+              }
+            })
+            .then(r => r.json())
+            .then(json => {
+              if (json.ok) {
+                toastr.success('The waiter has been called.', 'Success');
+              } else {
+                toastr.error('Could not call waiter.', 'Error');
+              }
+            })
+            .catch(() => {
+              toastr.error('Network error.', 'Error');
+            });
+          },
+        
+          tryRestoreAuth() {
+            const key = 'table_auth';
+            const code = this.getCookie(key);
+            if (!code) return;
+
+            fetch(window.location.pathname + 'authenticate/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCSRFToken()
+              },
+              body: JSON.stringify({ code })
+            })
+              .then(r => r.json())
+              .then(json => {
+                if (json.ok) {
+                  this.authenticated = true;
+                  this.authCode = code;
+                } else {
+                  this.setCookie(key, '');
+                }
+              });
+          },
+
+          openAuthModal() {
+            this.authInput = '';
+            this.authError = null;
+            this.showAuth = true;
+          },
+
+          submitAuth() {
+            const code = this.authInput.trim();
+            if (code.length !== 5) {
+              this.authError = 'Must be 5 characters';
+              return;
+            }
+            fetch(window.location.pathname + 'authenticate/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCSRFToken()
+              },
+              body: JSON.stringify({ code })
+            })
+              .then(r => r.json())
+              .then(json => {
+                if (json.ok) {
+                  this.authenticated = true;
+                  this.authCode = code;
+                  this.setCookie('table_auth', code);
+                  this.showAuth = false;
+                } else {
+                  this.authError = json.error || 'Wrong code';
+                }
+              })
+              .catch(() => {
+                this.authError = 'Network error';
+              });
+          },
+
+          showYourCode() {
+            this.showCode = true;
+          },
+
+          addToOrder(item) {
+            this.orderItems.push(item);
+          },
+
+          increment(itemId) {
+            const found = this.elements.find(el => el.id === itemId);
+            if (found) {
+              this.orderItems.push(found);
+            }
+          },
+
+          decrement(itemId) {
+            const idx = this.orderItems.findIndex(it => it.id === itemId);
+            if (idx !== -1) {
+              this.orderItems.splice(idx, 1);
+            }
+          },
+
+          removeEntire(itemId) {
+            this.orderItems = this.orderItems.filter(it => it.id !== itemId);
+          },
+
+          async confirmOrder() {
+            const payload = this.groupedOrder.map(entry => ({
+              element_id: entry.item.id,
+              quantity: entry.qty
+            }));
+            try {
+              const response = await fetch(
+                window.location.pathname + 'order/',
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
+                  },
+                  body: JSON.stringify({ items: payload })
+                }
+              );
+              const json = await response.json();
+              if (response.ok && json.ok) {
+                this.orderItems = [];
+                this.showOrderModal = false;
+                toastr.success('Your order was submitted!', 'Order Confirmed');
+                this.loadExistingOrders();          
+              } else {
+                const err = json.error || 'Order failed.';
+                toastr.error(err, 'Order Error');
+              }
+            } catch (err) {
+              console.error(err);
+              toastr.error('Network error', 'Order Error');
+            }
+          },
+
+          fetchCategories() {
+            fetch(`/restaurant/{{ restaurant.id }}/menu/categories/`)
+              .then(r => r.json())
+              .then(json => {
+                this.categories = json.categories;
+                if (!this.selected || !this.categories.find(c => c.id === this.selected)) {
+                  this.selected = this.categories[0]?.id || null;
+                }
+              })
+              .catch(console.error);
+          },
+
+          fetchElements() {
+            if (!this.selected) {
+              this.elements = [];
+              return;
+            }
+            fetch(`/restaurant/{{ restaurant.id }}/menu/categories/${this.selected}/elements/`)
+              .then(r => r.json())
+              .then(json => {
+                this.elements = json.elements;
+              })
+              .catch(console.error);
+          },
+
+          selectCategory(catId) {
+            this.selected = catId;
+            this.fetchElements();
+          },
+
+          // Load existing orders
+          async loadExistingOrders() {
+            try {
+              const resp = await fetch(window.location.pathname + 'orders/');
+              if (!resp.ok) throw new Error();
+              const data = await resp.json();
+              this.existingOrders = data.orders || [];
+            } catch (e) {
+              console.error('Could not load existing orders:', e);
+              this.existingOrders = [];
+            }
+          },
+          async checkIfTableIsOpen() {
+            try {
+              const response = await fetch(window.location.pathname + 'is_open/');
+              const data = await response.json();
+              if (!data.open) {
+                location.reload();
+              }
+            } catch (err) {
+              console.error('Failed to check table status:');
+            }
+          },
+        },
+
+        mounted() {
+          this.tryRestoreAuth();
+          this.fetchCategories();
+          this.$nextTick(() => this.fetchElements());
+          setInterval(() => {
+            this.fetchCategories();
+            this.fetchElements();
+            this.loadExistingOrders();
+          }, 1000);
+          setInterval(this.checkIfTableIsOpen, 5000);
+          this.loadExistingOrders();
+        }
+      }).mount('#table-app');
+    </script>
+  {% endif %}
+{% endblock content %}

@@ -1,0 +1,213 @@
+{% load static %}
+{% load static tailwind_tags %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link href="{% static 'core/' %}toast.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{% static 'core/' %}toast.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ristòpia</title>
+
+  <link rel="icon" type="image/png" href="/media/core/Icon.png" />
+  {% tailwind_css %}
+</head>
+<body>
+  <div class="fixed top-4 right-4 z-50">
+    {% if user.is_authenticated %}
+      <div class="relative">
+        <button id="userMenuBtn" class="bg-white px-4 py-2 rounded-lg shadow-md text-[#f87171] font-semibold">
+          {{ user.username }}
+        </button>
+        <div id="userDropdown" class="absolute right-0 mt-2 w-56 bg-white border rounded-lg shadow-lg hidden z-50">
+          <div class="px-4 py-3 text-sm text-gray-700">
+            {% with profile=user.get_User_Profile %}
+              {% if profile.get_Profile_Restaurantes.all %}
+                Restaurant: {{ profile.get_Profile_Restaurantes.first.name }}
+                <br/>
+                <a class="text-[#34C759]" href="{% url 'owner_dashboard' profile.get_Profile_Restaurantes.first.owner.id %}">Go to Dashboard</a>
+                {% elif profile.get_Profile_Workers.all %}
+                Restaurant: {{ profile.get_Profile_Workers.first.restaurant.name }}
+              {% else %}
+                Restaurant: Not Assigned
+              {% endif %}
+            {% endwith %}
+          </div>
+          <form method="POST" action="{% url 'logout' %}" class="px-4 pb-3">
+            {% csrf_token %}
+            <button type="submit" class="w-full text-left text-red-500 hover:underline">Logout</button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <a href="{% url 'custom_login' %}" class="bg-white px-4 py-2 rounded-lg shadow-md text-[#f87171] font-semibold">Login</a>
+    {% endif %}
+  </div>
+
+  <div class="overflow-x-auto">
+  {% block content %}
+  {% endblock content %}
+
+  </div>
+
+
+
+</body>
+<footer class="w-full bg-[#f3f4f6] py-12">
+  <div class="text-center">|
+    <p class="text-lg text-[#6b7280]">© 2030 Ristòpia | All rights reserved</p>
+    <div class="mt-4">
+      <a href="#" class="text-[#f87171] hover:text-[#ef4444] mx-2">Privacy Policy</a>
+      <a href="#" class="text-[#f87171] hover:text-[#ef4444] mx-2">Terms & Conditions</a>
+    </div>
+  </div>
+</footer>
+
+
+<style>
+html, body {
+  height: 100%; 
+  overflow-x: hidden; 
+  
+}
+
+body {
+  overflow-y: scroll; 
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  -ms-overflow-style: none;  
+  scrollbar-width: none; 
+}
+
+.inputGroup {
+  font-family: 'Segoe UI', sans-serif;
+  margin: 1em 0;
+  position: relative;
+  max-width: 100%;
+}
+
+.inputGroup input {
+  font-size: 100%;
+  padding: 0.8em;
+  outline: none;
+  border: 2px solid rgb(200, 200, 200);
+  background-color: transparent;
+  border-radius: 20px;
+  width: 100%;
+}
+
+.inputGroup label {
+  font-size: 100%;
+  position: absolute;
+  left: 0;
+  padding: 0.8em;
+  margin-left: 0.5em;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  color: rgb(100, 100, 100);
+}
+
+.inputGroup :is(input:focus, input:valid)~label {
+  transform: translateY(-50%) scale(0.9);
+  margin: 0;
+  margin-left: 1.3em;
+  padding: 0.4em;
+  background-color: #fef3c7;
+}
+
+.inputGroup :is(input:focus, input:valid) {
+  border-color: rgb(150, 150, 200);
+}
+
+
+</style>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const btn = document.getElementById("userMenuBtn");
+    const dropdown = document.getElementById("userDropdown");
+
+    // Toggle dropdown
+    btn?.addEventListener("click", function (e) {
+      e.stopPropagation();
+      dropdown.classList.toggle("hidden");
+    });
+
+    // Close if clicking outside
+    document.addEventListener("click", function (e) {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.add("hidden");
+      }
+    });
+  });
+</script>
+
+
+<script>
+
+  toastr.options = {
+    "closeButton": true,
+    "debug": false,
+    "newestOnTop": false,
+    "progressBar": true,
+    "positionClass": "toast-top-center",
+    "preventDuplicates": true,
+    "onclick": null,
+    "showDuration": "300",
+    "hideDuration": "1000",
+    "timeOut": "5000",
+    "extendedTimeOut": "1000",
+    "showEasing": "swing",
+    "hideEasing": "linear",
+    "showMethod": "fadeIn",
+    "hideMethod": "fadeOut"
+  }
+  {% if messages %}
+    {% for message in messages %}
+        {% with message.message|split:"|" as parts %}
+            {% if message.tags == 'success' %}
+                toastr.success('{{parts.1}}', '{{parts.0}}')
+            {% elif message.tags == 'error' %}
+                toastr.error('{{parts.1}}', '{{parts.0}}')
+            {% elif message.tags == 'warning' %}
+                toastr.warning('{{parts.1}}', '{{parts.0}}')
+            {% elif message.tags == 'info' %}
+                toastr.info('{{parts.1}}', '{{parts.0}}')
+            {% endif %}
+        {% endwith %}
+    {% endfor %}
+{% endif %}
+</script>
+  <script>
+    window.addEventListener("load", function() {
+      // Sidebar toggle
+      const menuToggle = document.getElementById("menu-toggle");
+      const sidebarMenu = document.getElementById("sidebar-menu");
+      const overlay = document.getElementById("menu-overlay");
+
+      // Open menu
+      menuToggle.addEventListener("click", function () {
+        sidebarMenu.classList.remove("-translate-x-full");
+        overlay.classList.remove("hidden");
+      });
+
+      // Close menu
+      overlay.addEventListener("click", function () {
+        sidebarMenu.classList.add("-translate-x-full");
+        overlay.classList.add("hidden");
+      });
+    });
+
+</script>
+</html>

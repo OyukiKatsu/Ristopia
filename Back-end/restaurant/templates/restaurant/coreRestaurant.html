@@ -1,0 +1,166 @@
+{% load static %}
+{% load static tailwind_tags %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link href="{% static 'core/' %}toast.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{% static 'core/' %}toast.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ristòpia</title>
+
+  <link rel="icon" type="image/png" href="/media/core/Icon.png" />
+  {% tailwind_css %}
+</head>
+<body>
+
+
+{% block content %}
+{% endblock content %}
+
+
+
+
+
+</body>
+
+
+<style>
+html, body {
+  height: 100%; 
+  overflow-x: hidden; 
+  
+}
+
+body {
+  overflow-y: scroll; 
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  -ms-overflow-style: none;  
+  scrollbar-width: none; 
+}
+  :root {
+    --single‐bounce‐duration: 0.6s;      
+    --per‐letter‐delay:         0.05s;   
+    --max‐letters:              20;     
+    --wave‐duration: calc(
+      ( (var(--max‐letters) - 1) * var(--per‐letter‐delay) )
+      + var(--single‐bounce‐duration)
+    );
+  }
+
+  .bounce-text {
+    display: inline-flex;
+    gap: 2px;               
+    line-height: 1;         
+  }
+
+  .bounce-text span {
+    display: inline-block;
+    animation-name: bounceWave;
+    animation-duration: var(--wave‐duration);
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+  }
+
+  .bounce-text span:nth-child(1)  { animation-delay: calc(0 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(2)  { animation-delay: calc(1 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(3)  { animation-delay: calc(2 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(4)  { animation-delay: calc(3 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(5)  { animation-delay: calc(4 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(6)  { animation-delay: calc(5 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(7)  { animation-delay: calc(6 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(8)  { animation-delay: calc(7 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(9)  { animation-delay: calc(8 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(10) { animation-delay: calc(9 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(11) { animation-delay: calc(10 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(12) { animation-delay: calc(11 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(13) { animation-delay: calc(12 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(14) { animation-delay: calc(13 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(15) { animation-delay: calc(14 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(16) { animation-delay: calc(15 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(17) { animation-delay: calc(16 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(18) { animation-delay: calc(17 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(19) { animation-delay: calc(18 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(20) { animation-delay: calc(19 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(21) { animation-delay: calc(20 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(22) { animation-delay: calc(21 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(23) { animation-delay: calc(22 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(24) { animation-delay: calc(23 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(25) { animation-delay: calc(24 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(26) { animation-delay: calc(25 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(27) { animation-delay: calc(26 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(28) { animation-delay: calc(27 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(29) { animation-delay: calc(28 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(30) { animation-delay: calc(29 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(31) { animation-delay: calc(30 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(32) { animation-delay: calc(31 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(33) { animation-delay: calc(32 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(34) { animation-delay: calc(33 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(35) { animation-delay: calc(34 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(36) { animation-delay: calc(35 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(37) { animation-delay: calc(36 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(38) { animation-delay: calc(37 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(39) { animation-delay: calc(38 * var(--per‐letter‐delay)); }
+  .bounce-text span:nth-child(40) { animation-delay: calc(39 * var(--per‐letter‐delay)); }
+
+
+  @keyframes bounceWave {
+    0%, 19.35%, 100% {
+      transform: translateY(0); 
+    }
+    9.675% {
+      transform: translateY(-10px);
+    }
+  }
+
+</style>
+
+<script>
+
+  toastr.options = {
+    "closeButton": true,
+    "debug": false,
+    "newestOnTop": false,
+    "progressBar": true,
+    "positionClass": "toast-top-center",
+    "preventDuplicates": false,
+    "onclick": null,
+    "showDuration": "300",
+    "hideDuration": "1000",
+    "timeOut": "5000",
+    "extendedTimeOut": "1000",
+    "showEasing": "swing",
+    "hideEasing": "linear",
+    "showMethod": "fadeIn",
+    "hideMethod": "fadeOut"
+  }
+  {% if messages %}
+    {% for message in messages %}
+        {% with message.message|split:"|" as parts %}
+            {% if message.tags == 'success' %}
+                toastr.success('{{parts.1}}', '{{parts.0}}')
+            {% elif message.tags == 'error' %}
+                toastr.error('{{parts.1}}', '{{parts.0}}')
+            {% elif message.tags == 'warning' %}
+                toastr.warning('{{parts.1}}', '{{parts.0}}')
+            {% elif message.tags == 'info' %}
+                toastr.info('{{parts.1}}', '{{parts.0}}')
+            {% endif %}
+        {% endwith %}
+    {% endfor %}
+{% endif %}
+</script>
+</html>

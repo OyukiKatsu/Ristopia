@@ -1,0 +1,100 @@
+{% extends 'core/core.html' %}
+
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-[#fde68a]">
+  <div class="bg-[#fef3c7] p-8 rounded-2xl shadow-md w-full max-w-md text-center">
+    <h2 class="text-3xl font-extrabold text-[#f87171] mb-6">Welcome Back</h2>
+
+    <!-- Role Selection -->
+    <div id="role-select" class="space-y-4">
+      <button onclick="showForm('owner')" class="w-full bg-[#f87171] text-white font-bold py-3 px-6 rounded-full hover:bg-[#ef4444] transition-all">
+        I'm an Owner
+      </button>
+      <button onclick="showForm('worker')" class="w-full bg-[#f87171] text-white font-bold py-3 px-6 rounded-full hover:bg-[#ef4444] transition-all">
+        I'm a Worker
+      </button>
+    </div>
+
+<!-- Owner Login Form -->
+<form method="POST" id="owner-form" class="hidden mt-6 text-left">
+  {% csrf_token %}
+  <input type="hidden" name="login_type" value="owner">
+
+  <!-- Back Button -->
+  <button type="button" onclick="goBack()" class="mb-4 text-[#6b7280] hover:text-[#ef4444] font-semibold flex items-center">
+    ← Go Back
+  </button>
+
+  <div class="inputGroup">
+    <input type="text" name="username" required autocomplete="username" />
+    <label for="username">Username</label>
+  </div>
+
+  <div class="inputGroup">
+    <input type="password" name="password" required autocomplete="current-password" />
+    <label for="password">Password</label>
+  </div>
+
+
+
+  <button type="submit" class="w-full mt-4 bg-[#f87171] text-white font-bold py-2 px-4 rounded-full shadow hover:bg-[#ef4444] transition-all duration-300">
+    Log In as Owner
+  </button>
+
+  <p class="text-sm text-right text-[#6b7280] mt-3">
+    Forget you password?
+    <a href="{% url 'reset_password' %}" class="text-[#f87171] hover:text-[#ef4444] font-medium">Reset here</a>
+  </p>
+  <p class="text-sm text-right text-[#6b7280] mt-3">
+    Don’t have an account?
+    <a href="{% url 'register' %}" class="text-[#f87171] hover:text-[#ef4444] font-medium">Register here</a>
+  </p>
+</form>
+
+
+<!-- Worker Login Form -->
+<form method="POST" id="worker-form" class="hidden mt-6 text-left">
+  {% csrf_token %}
+  <input type="hidden" name="login_type" value="worker">
+
+  <!-- Back Button -->
+  <button type="button" onclick="goBack()" class="mb-4 text-[#6b7280] hover:text-[#ef4444] font-semibold flex items-center">
+    ← Go Back
+  </button>
+
+  <div class="inputGroup">
+    <input type="text" name="login_code" required />
+    <label for="login_code">Worker Login Code</label>
+  </div>
+
+  <button type="submit" class="w-full mt-4 bg-[#f87171] text-white font-bold py-2 px-4 rounded-full shadow hover:bg-[#ef4444] transition-all duration-300">
+    Log In as Worker
+  </button>
+</form>
+
+  </div>
+</div>
+
+<!-- JavaScript to toggle forms -->
+<script>
+  function showForm(role) {
+    document.getElementById('role-select').classList.add('hidden');
+    document.getElementById('owner-form').classList.add('hidden');
+    document.getElementById('worker-form').classList.add('hidden');
+
+    if (role === 'owner') {
+      document.getElementById('owner-form').classList.remove('hidden');
+    } else if (role === 'worker') {
+      document.getElementById('worker-form').classList.remove('hidden');
+    }
+  }
+
+  function goBack() {
+    document.getElementById('owner-form').classList.add('hidden');
+    document.getElementById('worker-form').classList.add('hidden');
+    document.getElementById('role-select').classList.remove('hidden');
+  }
+</script>
+{% endblock content %}

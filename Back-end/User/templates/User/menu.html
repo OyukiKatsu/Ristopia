@@ -1,0 +1,714 @@
+{% extends 'core/core.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-[#fde68a] flex items-center justify-center px-4 py-12">
+  <!-- Sidebar toggle & overlay -->
+  <button id="menu-toggle" class="fixed top-4 left-4 z-50 p-2 focus:outline-none bg-[#fde68a] rounded">
+    <svg class="w-8 h-8 text-[#f87171]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  </button>
+  <div id="menu-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+
+  <!-- Sidebar Overlay & Menu -->
+  <div id="sidebar-menu"
+       class="fixed top-0 left-0 h-full w-64 bg-[#fef3c7] shadow-lg transform -translate-x-full transition-transform duration-300 z-50">
+    <div class="p-6">
+      <h2 class="text-xl font-bold text-[#f87171] mb-4">Menu</h2>
+      <ul class="space-y-4">
+        <li><a href="{% url 'owner_dashboard' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Dashboard</a></li>
+        <li><a href="{% url 'owner_menu' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Menu</a></li>
+        <li><a href="{% url 'owner_workers' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Workers</a></li>
+        <li><a href="{% url 'owner_map_creator' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Map creator</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="form-container bg-[#fef3c7] p-8 rounded-xl shadow-xl w-full max-w-3xl">
+    <h2 class="text-2xl font-bold mb-4">{{ restaurant.name }}</h2>
+    {% if restaurant.icon %}
+      <div class="w-full h-64 bg-cover bg-center rounded-lg shadow-md"
+           style="background-image: url('{{ restaurant.icon.url }}');"></div><br/>
+    {% endif %}
+
+    {% if not menu %}
+      <button id="create-menu-btn" class="bg-green-500 text-white px-4 py-2 rounded">
+        Ready to create your menu? +
+      </button>
+    {% else %}
+      <div id="menu-container">
+        <div id="categories" class="flex space-x-2 mb-4" style="overflow-x: auto; overflow-y: visible;">
+
+          {% for category in menu.get_Menu_Categories.all %}
+            <div class="relative inline-block overflow-visible">
+            <button
+              class="category-btn flex items-center space-x-2 text-gray-700 px-4 py-2 rounded-full focus:outline-none select-category
+                {% if category.active %}
+                  bg-gray-200 hover:bg-gray-300
+                {% else %}
+                  bg-red-200   hover:bg-red-300
+                {% endif %}"
+              data-id="{{ category.id }}" first-category-identifire="{{ category.id }}{{ category.name }}">
+              <span>{{ category.name }}</span>
+
+                <!-- vertical ellipsis -->
+                <svg class="w-5 h-5 text-gray-600 dropdown-trigger"
+                    fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              </button>
+
+              
+              <div
+                class="category-dropdown absolute right-0 mt-2 w-40 bg-white border
+                      rounded shadow-lg hidden z-50">
+                <button
+                  class="w-full text-left px-4 py-2 hover:bg-gray-100 edit-category"
+                  data-id="{{ category.id }}">
+                  Edit
+                </button>
+                <button
+                  class="w-full text-left px-4 py-2 hover:bg-gray-100 delete-category"
+                  data-id="{{ category.id }}">
+                  Delete
+                </button>
+                <button
+                  class="w-full text-left px-4 py-2 hover:bg-gray-100 toggle-category"
+                  data-id="{{ category.id }}">
+                  {{ category.active|yesno:"Disable,Enable" }}
+                </button>
+              </div>
+            </div>
+          {% endfor %}
+          <button id="add-category-btn"
+                  class="bg-gray-300 px-4 py-2 rounded-full">+</button>
+        </div>
+        <div id="category-elements" class="overflow-x-auto">
+          <!-- elements loaded here -->
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Category Modal -->
+<div id="category-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white p-4 rounded-lg shadow-lg">
+    <h3 class="text-lg font-bold mb-2">Add Category</h3>
+    <input type="text" id="new-category-name" placeholder="Category Name"
+           class="border p-2 mb-2 w-full rounded">
+    <button id="save-category-btn" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+    <button id="close-category-modal" class="ml-2 px-4 py-2 rounded">Cancel</button>
+  </div>
+</div>
+
+<!-- Element Modal -->
+<div id="element-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white p-4 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <h3 class="text-lg font-bold mb-2">Add / Edit Element</h3>
+    <input type="text" id="new-element-name" placeholder="Item Name" class="border p-2 mb-2 w-full rounded">
+    <textarea id="new-element-description" placeholder="Description" class="border p-2 mb-2 w-full rounded"></textarea>
+    <textarea id="new-element-recipe" placeholder="Recipe instructions" class="border p-2 mb-2 w-full rounded" rows="3"></textarea>
+    <select id="new-element-type" class="border p-2 mb-2 w-full rounded">
+      <option value="">-- Select type --</option>
+      <option value="To share">To share</option>
+      <option value="First plate">First plate</option>
+      <option value="Second plate">Second plate</option>
+      <option value="Dessert">Dessert</option>
+      <option value="Drink">Drink</option>
+
+    </select>
+
+    <input type="number" id="new-element-price" placeholder="Price"
+           class="border p-2 mb-2 w-full rounded">
+    <input type="number" id="new-element-cost" placeholder="Cost"
+           class="border p-2 mb-2 w-full rounded">
+    <input type="file" id="new-element-image" class="border p-2 mb-2 w-full rounded">
+    <div class="mb-2">
+          <p class="font-semibold mb-1">Allergens:</p>
+          <div class="grid grid-cols-4 gap-2">
+          {% for allergen in allergens %}
+                  <label class="flex flex-col items-center cursor-pointer p-1 rounded-lg border hover:bg-gray-100">
+                    {% if allergen.icon %}
+                      <img src="{{ allergen.icon.url }}" alt="{{ allergen.name }}" class="w-8 h-8 mb-1"/>
+                    {% else %}
+                      <div class="w-8 h-8 bg-gray-200 flex items-center justify-center mb-1 text-gray-600 font-bold">
+                        {{ allergen.name|slice:":1" }}
+                      </div>
+                    {% endif %}
+                    <input type="checkbox"
+                          name="allergens"
+                          value="{{ allergen.id }}"
+                          class="form-checkbox h-4 w-4 text-red-600">
+                    <span class="text-[10px] mt-1">{{ allergen.name }}</span>
+                  </label>
+          {% endfor %}
+          </div>
+    </div>
+    <button id="save-element-btn" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+    <button id="close-element-modal" class="ml-2 px-4 py-2 rounded">Cancel</button>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white p-4 rounded-lg shadow-lg text-center">
+    <p class="mb-4">Are you sure you want to delete this item?</p>
+    <button id="confirm-delete-btn" class="bg-red-500 text-white px-4 py-2 rounded mr-2">Delete</button>
+    <button id="cancel-delete-btn" class="px-4 py-2 rounded">Cancel</button>
+  </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div id="edit-category-modal"
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-80">
+    <h3 class="text-lg font-bold mb-4">Edit Category</h3>
+    <input type="text" id="edit-category-name"
+           class="border p-2 mb-4 w-full rounded"
+           placeholder="Category Name">
+    <div class="text-right">
+      <button id="cancel-edit-category-btn"
+              class="px-4 py-2 rounded mr-2">Cancel</button>
+      <button id="confirm-edit-category-btn"
+              class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Category Modal -->
+<div id="delete-category-modal"
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-80 text-center">
+    <p class="mb-4">Are you sure you want to delete this category?</p>
+    <div class="flex justify-center">
+      <button id="cancel-delete-category-btn"
+              class="px-4 py-2 rounded mr-2">Cancel</button>
+      <button id="confirm-delete-category-btn"
+              class="bg-red-500 text-white px-4 py-2 rounded">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    // CSRF and ownerId
+    const csrftoken = document.cookie.split('; ').find(c => c.startsWith('csrftoken')).split('=')[1];
+    const ownerId = "{{ profile.id }}";
+    let pendingDeleteId = null;
+
+    // Create menu
+    $('#create-menu-btn').click(() => {
+      $.post(`/user/owner/${ownerId}/menu/create/`, {}, () => location.reload())
+       .fail(() => toastr.error('Could not create menu.'));
+    });
+
+  //============================================================================
+  // Categories Logic 
+  //============================================================================
+
+    // Category modal
+    $('#add-category-btn').click(() => $('#category-modal').removeClass('hidden'));
+    $('#close-category-modal').click(() => $('#category-modal').addClass('hidden'));
+    $('#save-category-btn').click(() => {
+      const name    = $('#new-category-name').val().trim();
+      const menu_id = "{{ menu.id }}";
+
+      if (!name) {
+        return toastr.error('Please enter a name.');
+      }
+
+      $.ajax({
+        url: `/user/owner/${ownerId}/menu/category/add/`,
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrftoken },
+        data: { name, menu_id },
+        dataType: 'json',
+      })
+      .done(res => {
+        if (res.status === 'success') {
+          $('#add-category-btn').before(`
+            <div class="relative inline-block overflow-visible">
+              <button
+                class="category-btn flex items-center space-x-2 text-gray-700 px-4 py-2 rounded-full focus:outline-none select-category bg-gray-200 hover:bg-gray-300"
+                data-id="${res.category_id}">
+                <span>${res.category_name}</span>
+                <svg class="w-5 h-5 text-gray-600 dropdown-trigger" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              </button>
+              <div class="category-dropdown absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg hidden z-50">
+                <button class="w-full text-left px-4 py-2 hover:bg-gray-100 edit-category"   data-id="${res.category_id}">Edit</button>
+                <button class="w-full text-left px-4 py-2 hover:bg-gray-100 delete-category" data-id="${res.category_id}">Delete</button>
+                <button class="w-full text-left px-4 py-2 hover:bg-gray-100 toggle-category" data-id="${res.category_id}">Disable</button>
+              </div>
+            </div>
+          `);
+
+          $('#new-category-name').val('');
+          $('#category-modal').addClass('hidden');
+          toastr.success('Category added.');
+        } else {
+          toastr.error(res.message || 'Unknown error adding category.');
+        }
+      })
+      .fail(() => {
+        toastr.error('Failed to add category.');
+      });
+    });
+
+
+// Show/hide dropdown when clicking the 3 dots icon
+$(document).on('click', '.dropdown-trigger', function(e) {
+  e.stopPropagation();
+  // hide any others
+  $('.category-dropdown').addClass('hidden');
+
+  const $trigger = $(this);
+  const $wrapper = $trigger.closest('.relative');
+  const $menu    = $wrapper.find('.category-dropdown');
+
+  // remember where the dropdown came from
+  $menu.data('orig-parent', $wrapper);
+
+  // move to body for overlapping
+  $menu
+    .appendTo(document.body)
+    .css('position','absolute')
+    .removeClass('hidden');
+
+  // position next to category button
+  const rect  = this.getBoundingClientRect();
+  const menuW = $menu.outerWidth();
+  const gap   = 8;
+  const left  = window.scrollX + rect.left + rect.width/2 - menuW/2;
+  const top   = window.scrollY + rect.bottom + gap;
+
+  $menu.css({ top: top + 'px', left: left + 'px', zIndex: 9999 });
+});
+
+// Hide dropdown and reattach to corresponding category
+$(document).on('click', function() {
+  $('.category-dropdown').each(function() {
+    const $d        = $(this);
+    const $original = $d.data('orig-parent');
+    if ($original) {
+      $d.appendTo($original);
+    }
+  })
+  .addClass('hidden');
+});
+
+// Category selection when clicking anywhere but the 3 dots icon
+$(document).on('click', '.select-category', function(e) {
+  if ($(e.target).hasClass('dropdown-trigger')) return;
+  const id = $(this).data('id');
+  $('.category-btn').removeClass('bg-blue-700');
+  $(this).addClass('bg-blue-700');
+  loadCategoryElements(id);
+});
+
+
+
+// TOGGLE active/inactive category
+$(document).on('click', '.toggle-category', function() {
+  const id      = $(this).data('id');
+  const toggle  = $(this);
+  const btn     = $(`[data-id="${id}"].category-btn`);
+
+  $.post({
+    url: `/user/owner/${ownerId}/menu/category/${id}/toggle/`,
+    headers: {'X-CSRFToken': csrftoken},
+    data: { category_id: id }
+  })
+  .done(res => {
+    toggle.text( res.active ? 'Disable' : 'Enable' );
+
+    if (res.active) {
+      toastr.success('Category enabled.');
+      btn
+        .removeClass('bg-red-200 hover:bg-red-300')
+        .addClass('bg-gray-200 hover:bg-gray-300');
+    } else {
+      toastr.info('Category disabled.');
+      btn
+        .removeClass('bg-gray-200 hover:bg-gray-300')
+        .addClass('bg-red-200 hover:bg-red-300');
+    }
+  })
+  .fail(() => toastr.error('Failed to toggle category.'));
+});
+
+
+
+let pendingDeleteCatId = null;
+let pendingEditCatId   = null;
+
+// OPEN Delete Category modal
+$(document).on('click', '.delete-category', function(e) {
+  document.dispatchEvent(new Event('click'));
+  e.stopPropagation();
+  pendingDeleteCatId = $(this).data('id');
+  $('#delete-category-modal').removeClass('hidden');
+});
+
+// CANCEL deletion
+$('#cancel-delete-category-btn').click(() => {
+  pendingDeleteCatId = null;
+  $('#delete-category-modal').addClass('hidden');
+});
+
+// CONFIRM deletion
+$('#confirm-delete-category-btn').click(() => {
+  const id = pendingDeleteCatId;
+  $.ajax({
+    url: `/user/owner/${ownerId}/menu/category/${id}/delete/`,
+    method: 'POST',
+    headers: {'X-CSRFToken': csrftoken},
+    data: { category_id: id }
+  })
+  .done(() => {
+    $(`[data-id="${id}"].category-btn`).parent().fadeOut(() => {
+      $(`[data-id="${id}"].category-btn`).parent().remove();
+    });
+    toastr.success('Category deleted.');
+  })
+  .fail(() => toastr.error('Failed to delete category.'))
+  .always(() => {
+    pendingDeleteCatId = null;
+    $('#delete-category-modal').addClass('hidden');
+  });
+});
+
+// OPEN Edit Category modal
+$(document).on('click', '.edit-category', function(e) {
+  document.dispatchEvent(new Event('click'));
+  e.stopPropagation();
+  pendingEditCatId = $(this).data('id');
+  const btn = $(`[data-id="${pendingEditCatId}"].category-btn`);
+  $('#edit-category-name').val( btn.find('span').text().trim() );
+  $('#edit-category-modal').removeClass('hidden');
+});
+
+// CANCEL edit
+$('#cancel-edit-category-btn').click(() => {
+  pendingEditCatId = null;
+  $('#edit-category-modal').addClass('hidden');
+});
+
+// SAVE edit
+$('#confirm-edit-category-btn').click(() => {
+  const newName = $('#edit-category-name').val().trim();
+  if (!newName) {
+    toastr.error('Name cannot be empty.');
+    return;
+  }
+  $.ajax({
+    url: `/user/owner/${ownerId}/menu/category/${pendingEditCatId}/update/`,
+    method: 'POST',
+    headers: {'X-CSRFToken': csrftoken},
+    data: { category_id: pendingEditCatId, name: newName }
+  })
+  .done(res => {
+    const btn = $(`[data-id="${pendingEditCatId}"].category-btn`);
+    btn.find('span').text(res.name);
+    toastr.success('Category renamed.');
+  })
+  .fail(() => toastr.error('Failed to rename category.'))
+  .always(() => {
+    pendingEditCatId = null;
+    $('#edit-category-modal').addClass('hidden');
+  });
+});
+
+
+    // Load elements
+    function loadCategoryElements(catId) {
+      $.get(`/user/owner/${ownerId}/menu/category/${catId}/elements/`)
+       .done(response => {
+         const cards = response.elements.map(element => `
+           <div id="element-${element.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4 overflow-x-auto overflow-y-visible min-w-full min-w-max" data-allergens='${JSON.stringify(element.allergens)}' data-recipe="${(element.recipe || '').replace(/"/g, '&quot;')}">
+             ${element.icon_url
+               ? `<img src="${element.icon_url}" class="w-24 h-24 object-cover rounded">`
+               : `<div class="w-24 h-24 bg-gray-100 rounded flex items-center justify-center">No Image</div>`
+             }
+             <div class="flex-1">
+               <p class="font-semibold text-lg">${element.name}</p>
+               <p class="text-sm text-gray-600">${element.description}</p>
+               <p class="text-sm text-blue-600">Type: ${element.type}</p>
+               <p class="text-sm text-green-600">Price: €${element.price}</p>
+               <p class="text-sm text-red-600">Cost: €${element.cost}</p>
+              ${element.allergens.length > 0
+                          ? `<div class="flex flex-wrap mt-2 space-x-1">
+                                ${element.allergens.map(a => `
+                                  <div class="w-6 h-6 rounded-full overflow-hidden border">
+                                    ${a.icon_url
+                                      ? `<img src="${a.icon_url}"
+                                              alt="${a.name}"
+                                              title="${a.name}"
+                                              class="object-cover w-full h-full">`
+                                      : `<div class="bg-gray-200 w-full h-full flex items-center justify-center text-xs text-gray-600" title="${a.name}">
+                                          ${a.name.slice(0,1)}
+                                        </div>`
+                                    }
+                            </div>
+                  `).join('')}
+                </div>`
+             : ``
+           }
+             </div>
+
+             <label class="flex items-center space-x-2 cursor-pointer">
+              <span class="text-sm toggle-label">${element.active ? 'Active' : 'Inactive'}</span>
+              <div class="relative">
+                <input type="checkbox" class="sr-only peer toggle-active" data-element-id="${element.id}" ${element.active ? 'checked' : ''}/>
+                <div class="w-12 h-6 bg-gray-300 rounded-full peer-checked:bg-green-400 transition-colors"></div>
+                <div class="absolute top-0.5 left-1 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:left-6 transition-all"></div>
+              </div>
+            </label>
+
+             <!-- 3-dot menu -->
+             <div class="relative ml-4">
+               <button class="three-dots p-2">
+                 <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                   <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z"/>
+                 </svg>
+               </button>
+               <div class="dropdown absolute right-0 mt-2 w-32 bg-white border rounded shadow-lg hidden z-10">
+                 <button class="w-full text-left px-4 py-2 hover:bg-gray-100 edit-element" data-element-id="${element.id}">Edit</button>
+                 <button class="w-full text-left px-4 py-2 hover:bg-gray-100 delete-element" data-element-id="${element.id}">Delete</button>
+               </div>
+             </div>
+           </div>
+         `).join('');
+         $('#category-elements').html(`
+           <div class="mb-4">
+             <div id="elements-list" class="space-y-4">${cards}</div>
+             <div class="flex justify-center">
+               <button id="add-element-btn" class="bg-gray-300 px-4 py-2 rounded-full mt-2" data-category-id="${catId}">+</button>
+             </div>
+           </div>
+         `);
+       })
+       .fail(() => toastr.error('Failed to load items.'));
+    }
+
+    // Category select
+    $(document).on('click', '.category-btn', function() {
+      $('.category-btn').removeClass('bg-blue-700');
+      $(this).addClass('bg-blue-700');
+      loadCategoryElements($(this).data('id'));
+    });
+
+    // Select first category on load
+    {% if menu and menu.get_Menu_Categories.all %}
+      const firstId = "{{ menu.get_Menu_Categories.first.id }}";
+      const firstName = "{{ menu.get_Menu_Categories.first.name }}";
+      const firstCat = firstId + firstName;
+
+      $(`[first-category-identifire='${firstCat}']`).addClass('bg-blue-700');
+      loadCategoryElements(firstId);
+    {% endif %}
+
+  //============================================================================
+  //============================================================================
+
+
+  
+  //============================================================================
+  // Elemnts Logic 
+  //============================================================================
+
+    // Add element
+    $(document).on('click', '#add-element-btn', function() {
+      $('#new-element-name').val('');
+      $('#new-element-description').val('');
+      $('#new-element-recipe').val(''); 
+      $('#new-element-type').val('');
+      $('#new-element-price').val('');
+      $('#new-element-cost').val('');
+      $('#new-element-image').val('');
+       $("input[name='allergens']").prop('checked', false);
+      $('#element-modal')
+        .removeClass('hidden')
+        .find('#save-element-btn')
+          .data('category-id', $(this).data('category-id'))
+          .data('element-id', '')
+          .text('Save');
+    });
+    $('#close-element-modal').click(() => $('#element-modal').addClass('hidden'));
+
+    // Toggle active
+    $(document).on('change', '.toggle-active', function() {
+          const id = $(this).data('element-id');
+          $.post({
+            url: `/user/owner/${ownerId}/menu/category-element/${id}/toggle/`,
+            headers: {'X-CSRFToken': csrftoken},
+            data: { element_id: id }
+          }).done(res => {
+            const parent = $(`#element-${id}`);
+            parent.find('.toggle-label').text(res.active ? 'Active' : 'Inactive');
+            toastr.success(`Item ${res.active ? 'enabled' : 'disabled'}.`);
+          }).fail(() => toastr.error('Toggle failed.'));
+        });
+
+    // 3-dot toggle
+
+    $(document).click(function() {
+        $('.dropdown').each(function() {
+          const $d        = $(this);
+          const $orig     = $d.data('orig-parent');
+          if ($orig) {
+            $d.appendTo($orig);
+          }
+        }).addClass('hidden');
+    }); 
+
+    $(document).on('click', '.three-dots', function(e) {
+      e.stopPropagation();
+      const $button    = $(this);
+      const $dropdown  = $button.siblings('.dropdown');
+
+      $('.dropdown').each(function() {
+        const $d         = $(this);
+        const $orig      = $d.data('orig-parent');
+        if ($orig) {
+          $d.appendTo($orig).addClass('hidden');
+        }
+      });
+
+      if (!$dropdown.hasClass('hidden')) {
+        $dropdown.addClass('hidden');
+        $dropdown.appendTo( $dropdown.data('orig-parent') ); 
+        return;
+      }
+
+      const $origParent = $dropdown.parent();
+      $dropdown.data('orig-parent', $origParent);
+
+      $dropdown.appendTo(document.body).removeClass('hidden');
+
+      const rect     = $button[0].getBoundingClientRect();
+      const dropdownW = $dropdown.outerWidth();
+      const gap      = 4;
+      const leftPos  = window.scrollX + rect.left + (rect.width - dropdownW);
+      const topPos   = window.scrollY + rect.bottom + gap;
+
+      $dropdown.css({
+        position: 'absolute',
+        top:      `${topPos}px`,
+        left:     `${Math.max(leftPos, 0)}px`,
+        zIndex:   9999
+      });
+    });
+
+    // Prepare delete
+    $(document).on('click', '.delete-element', function() {
+      pendingDeleteId = $(this).data('element-id');
+      $('#delete-modal').removeClass('hidden');
+    });
+    $('#cancel-delete-btn').click(() => {
+      pendingDeleteId = null;
+      $('#delete-modal').addClass('hidden');
+    });
+    $('#confirm-delete-btn').click(() => {
+      const id = pendingDeleteId;
+      $.post({
+        url: `/user/owner/${ownerId}/menu/category-element/${id}/delete/`,
+        headers: {'X-CSRFToken': csrftoken},
+        data: { element_id: id }
+      }).done(() => {
+        $(`#element-${id}`).fadeOut(() => $(`#element-${id}`).remove());
+        $('#delete-modal').addClass('hidden');
+        toastr.success('Item deleted.');
+      }).fail(() => toastr.error('Delete failed.'));
+    });
+
+    // Edit element
+    $(document).on('click', '.edit-element', function() {
+      const id   = $(this).data('element-id');
+      const card = $(`#element-${id}`);
+
+      $('#new-element-name').val(        card.find('p.font-semibold').text() );
+      $('#new-element-description').val( card.find('p.text-gray-600').text() );
+      $('#new-element-recipe').val(      card.data('recipe') );
+      $('#new-element-price').val(       card.find('p.text-green-600').text().replace(/[^0-9.]/g,'') );
+      $('#new-element-cost').val(        card.find('p.text-red-600').text().replace(/[^0-9.]/g,'') );
+      $('#new-element-type').val(        card.find('p.text-blue-600').text().replace('Type:', '').trim());
+
+      $('#new-element-image').val('');
+
+      $("input[name='allergens']").prop('checked', false);
+
+      const elementAllergens = card.data('allergens') || [];  
+
+      elementAllergens.forEach(a => {
+        $(`input[name='allergens'][value='${a.id}']`).prop('checked', true);
+      });
+
+      $('#element-modal')
+        .removeClass('hidden')
+        .find('#save-element-btn')
+          .data('element-id', id)
+          .text('Update');
+    });
+
+    // Create / Update element
+    $('#save-element-btn').off('click').on('click', function() {
+      const elementId  = $(this).data('element-id');
+      const categoryId = $(this).data('category-id');
+      const url = elementId
+        ? `/user/owner/${ownerId}/menu/category-element/${elementId}/update/`
+        : `/user/owner/${ownerId}/menu/category-element/add/`;
+      const data = new FormData();
+      const selectedAllergens = [];
+      if(elementId) data.append('element_id', elementId);
+
+      if (!$('#new-element-type').val())
+      {
+        return toastr.error('Please select a type.');
+      }
+
+
+      data.append('category_id', categoryId);
+      data.append('name', $('#new-element-name').val());
+      data.append('description', $('#new-element-description').val());
+      data.append('recipe', $('#new-element-recipe').val());
+      data.append('price', $('#new-element-price').val());
+      data.append('cost', $('#new-element-cost').val());
+      data.append('type', $('#new-element-type').val());
+
+      const img = $('#new-element-image')[0].files[0];
+      if(img) data.append('icon', img);
+      $("input[name='allergens']:checked").each(function() {
+          selectedAllergens.push($(this).val());
+        });
+        data.append('allergens', JSON.stringify(selectedAllergens));
+      $.ajax({
+        url, type:'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data, processData:false, contentType:false
+      }).done(res => {
+        if(res.status==='success') {
+          toastr.success(elementId ? 'Item updated.' : 'Item added.');
+          $('#element-modal').addClass('hidden');
+          loadCategoryElements($('.category-btn.bg-blue-700').data('id'));
+        } else {
+          toastr.error(res.message||'Error.');
+        }
+      }).fail(() => toastr.error('Operation failed. Verify that the data submited is correct.'));
+    });
+
+
+  //============================================================================
+  //============================================================================
+
+
+
+
+
+
+  });
+</script>
+{% endblock %}

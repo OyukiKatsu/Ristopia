@@ -1,0 +1,154 @@
+{% extends 'core/core.html' %}
+{% load static %}
+
+{% block content %}
+
+
+<div class="min-h-screen bg-[#fde68a] px-6 py-10">
+  <button id="menu-toggle" class="fixed top-4 left-4 z-50 p-2 focus:outline-none bg-[#fde68a] rounded">
+    <svg class="w-8 h-8 text-[#f87171]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  </button>
+  <div id="menu-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+  <!-- Sidebar Menu -->
+  <div id="sidebar-menu" class="fixed top-0 left-0 h-full w-64 bg-[#fef3c7] shadow-lg transform -translate-x-full transition-transform duration-300 z-50">
+    <div class="p-6">
+      <h2 class="text-xl font-bold text-[#f87171] mb-4">Menu</h2>
+      <ul class="space-y-4">
+        <li><a href="{% url 'owner_dashboard' owner_id=owner_id %}" class="text-[#f87171] hover:underline">Dashboard</a></li>
+        <li><a href="{%  url 'owner_menu' owner_id=owner_id %}" class="text-[#f87171] hover:underline">Menu</a></li>
+        <li><a href="{% url 'owner_workers' owner_id=owner_id %}" class="text-[#f87171] hover:underline">Workers</a></li>
+        <li><a href="{% url 'owner_map_creator' owner_id=owner_id %}" class="text-[#f87171] hover:underline">Map creator</a></li>
+      </ul>
+    </div>
+  </div>
+
+
+
+
+
+  <h1 class="text-4xl font-bold text-center text-[#f87171] mb-10">Owner Dashboard</h1>
+
+  <!-- Stats Summary -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-[#fef3c7] shadow rounded-lg p-6 text-center">
+      <p class="text-xl font-semibold text-[#6b7280]">Today Profit</p>
+      <p class="text-2xl font-bold text-[#f87171] mt-2">{{ stats.Today_Profit|default:"0.00" }}</p>
+    </div>
+    <div class="bg-[#fef3c7] shadow rounded-lg p-6 text-center">
+      <p class="text-xl font-semibold text-[#6b7280]">Today Cost</p>
+      <p class="text-2xl font-bold text-[#f87171] mt-2">{{ stats.Today_Cost|default:"0.00" }}</p>
+    </div>
+    <div class="bg-[#fef3c7] shadow rounded-lg p-6 text-center">
+      <p class="text-xl font-semibold text-[#6b7280]">Top Dish Today</p>
+      <p class="text-2xl font-bold text-[#f87171] mt-2">{{ stats.Top_Dish_Today|default:"N/A" }}</p>
+    </div>
+  </div>
+
+  <!-- Profit Chart -->
+  <div class="bg-[#fef3c7] rounded-xl shadow-lg p-6 mb-8">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-[#f87171]">Profit Chart</h2>
+      <div class="space-x-2">
+        <button onclick="changeChart('profit', '1d', this)" class="chart-btn bg-[#f87171] text-white border border-[#f87171] px-4 py-1 rounded-full">Today</button>
+        <button onclick="changeChart('profit', '1w', this)" class="chart-btn bg-[#fef3c7] text-[#f87171] border border-[#f87171] px-4 py-1 rounded-full hover:bg-[#f87171] hover:text-white">Week</button>
+        <button onclick="changeChart('profit', '1m', this)" class="chart-btn bg-[#fef3c7] text-[#f87171] border border-[#f87171] px-4 py-1 rounded-full hover:bg-[#f87171] hover:text-white">Month</button>
+      </div>
+    </div>
+    <canvas id="profitChart" class="w-full h-96"></canvas>
+  </div>
+
+  <!-- Cost Chart -->
+  <div class="bg-[#fef3c7] rounded-xl shadow-lg p-6 mb-8">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-[#f87171]">Cost Chart</h2>
+      <div class="space-x-2">
+        <button onclick="changeChart('cost', '1d', this)" class="chart-btn bg-[#f87171] text-white border border-[#f87171] px-4 py-1 rounded-full">Today</button>
+        <button onclick="changeChart('cost', '1w', this)" class="chart-btn bg-[#fef3c7] text-[#f87171] border border-[#f87171] px-4 py-1 rounded-full hover:bg-[#f87171] hover:text-white">Week</button>
+        <button onclick="changeChart('cost', '1m', this)" class="chart-btn bg-[#fef3c7] text-[#f87171] border border-[#f87171] px-4 py-1 rounded-full hover:bg-[#f87171] hover:text-white">Month</button>
+      </div>
+    </div>
+    <canvas id="costChart" class="w-full h-96"></canvas>
+  </div>
+  
+  <!-- Top Dish Chart -->
+  <div class="bg-[#fef3c7] rounded-xl shadow-lg p-6 mb-8">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-[#f87171]">Top Dish Chart</h2>
+      <div class="space-x-2">
+        <button onclick="changeChart('most_ordered', '1d', this)" class="chart-btn bg-[#f87171] text-white border border-[#f87171] px-4 py-1 rounded-full">Today</button>
+        <button onclick="changeChart('most_ordered', '1w', this)" class="chart-btn bg-[#fef3c7] text-[#f87171] border border-[#f87171] px-4 py-1 rounded-full hover:bg-[#f87171] hover:text-white">Week</button>
+        <button onclick="changeChart('most_ordered', '1m', this)" class="chart-btn bg-[#fef3c7] text-[#f87171] border border-[#f87171] px-4 py-1 rounded-full hover:bg-[#f87171] hover:text-white">Month</button>
+      </div>
+    </div>
+    <canvas id="topDishChart" class="w-full h-96"></canvas>
+  </div>  
+</div>
+
+<script>
+  let profitChart, costChart, topDishChart;
+  
+  function createChart(ctx, type, labels, data, yLabel) {
+    return new Chart(ctx, {
+      type: type,
+      data: {
+        labels: labels,
+        datasets: [{
+          label: yLabel,
+          data: data,
+          backgroundColor: type === 'bar' ? '#f87171' : 'rgba(248,113,113,0.5)',
+          borderColor: '#f87171',
+          borderWidth: 2,
+          fill: type !== 'bar',
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return type !== 'bar' ? '€' + value : value;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  function loadChart(chartType, range, owner_id) {
+    $.getJSON(`/user/dashboard/chart-data/?type=${chartType}&range=${range}&owner_id=${owner_id}`, function(response) {
+      let ctx;
+      if (chartType === 'profit') {
+        if (profitChart) profitChart.destroy();
+        ctx = document.getElementById('profitChart').getContext('2d');
+        profitChart = createChart(ctx, 'line', response.labels, response.data, 'Profit (€)');
+      } else if (chartType === 'cost') {
+        if (costChart) costChart.destroy();
+        ctx = document.getElementById('costChart').getContext('2d');
+        costChart = createChart(ctx, 'line', response.labels, response.data, 'Cost (€)');
+      } else if (chartType === 'most_ordered') {
+        if (topDishChart) topDishChart.destroy();
+        ctx = document.getElementById('topDishChart').getContext('2d');
+        topDishChart = createChart(ctx, 'bar', response.labels, response.data, 'Orders');
+      }
+    });
+  }
+  
+  function changeChart(chartType, range, btn) {
+    const ownerId = "{{ owner_id }}";
+    $(btn).siblings().removeClass("bg-[#f87171] text-white").addClass("bg-[#fef3c7] text-[#f87171]");
+    $(btn).addClass("bg-[#f87171] text-white").removeClass("bg-[#fef3c7] text-[#f87171]");
+    loadChart(chartType, range, ownerId);
+  }
+  
+  $(document).ready(function () {
+    const ownerId = "{{ owner_id }}";
+    loadChart('profit', '1d', ownerId);
+    loadChart('cost', '1d', ownerId);
+    loadChart('most_ordered', '1d', ownerId);
+  });
+  </script>
+{% endblock %}

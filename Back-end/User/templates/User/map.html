@@ -1,0 +1,849 @@
+{% extends 'core/core.html' %}
+{% load static tailwind_tags %}
+
+{% block content %}
+<!-- All Maps Data -->
+<script id="all-maps-data" type="application/json">
+  {{ maps_json|default:'[]'|safe }}
+</script>
+
+<!-- CSRF Token -->
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+<!-- Main Container -->
+<div class="min-h-screen bg-[#fde68a] px-6 py-10">
+
+
+  <!-- Sidebar Toggle Button -->
+  <button id="menu-toggle" class="fixed top-4 left-4 z-50 p-2 focus:outline-none bg-[#fde68a] rounded">
+    <svg class="w-8 h-8 text-[#f87171]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  </button>
+  <div id="menu-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+  <!-- Sidebar Menu -->
+  <div id="sidebar-menu" class="fixed top-0 left-0 h-full w-64 bg-[#fef3c7] shadow-lg transform -translate-x-full transition-transform duration-300 z-50">
+    <div class="p-6">
+      <h2 class="text-xl font-bold text-[#f87171] mb-4">Menu</h2>
+      <ul class="space-y-4">
+        <li><a href="{% url 'owner_dashboard' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Dashboard</a></li>
+        <li><a href="{%  url 'owner_menu' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Menu</a></li>
+        <li><a href="{% url 'owner_workers' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Workers</a></li>
+        <li><a href="{% url 'owner_map_creator' owner_id=profile.id %}" class="text-[#f87171] hover:underline">Map creator</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Toolbox button -->
+  <button id="toolbox-toggle" class="fixed top-1/2 right-4 transform -translate-y-1/2 z-50 p-2 bg-gray-400 rounded focus:outline-none"><svg fill="#000000" stroke="#000000" stroke-width="0.0048" width="32px" height="32px" viewBox="-134.34 -134.34 748.47 748.47" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g><path d="M478.409,116.617c-0.368-4.271-3.181-7.94-7.2-9.403c-4.029-1.472-8.539-0.47-11.57,2.556l-62.015,62.011l-68.749-21.768l-21.768-68.748l62.016-62.016c3.035-3.032,4.025-7.543,2.563-11.565c-1.477-4.03-5.137-6.837-9.417-7.207c-37.663-3.245-74.566,10.202-101.247,36.887c-36.542,36.545-46.219,89.911-29.083,135.399c-1.873,1.578-3.721,3.25-5.544,5.053L19.386,373.152c-0.073,0.071-0.145,0.149-0.224,0.219c-24.345,24.346-24.345,63.959,0,88.309c24.349,24.344,63.672,24.048,88.013-0.298c0.105-0.098,0.201-0.196,0.297-0.305l193.632-208.621c1.765-1.773,3.404-3.628,4.949-5.532c45.5,17.167,98.9,7.513,135.474-29.056C468.202,191.181,481.658,154.275,478.409,116.617z M75.98,435.38c-8.971,8.969-23.5,8.963-32.47,0c-8.967-8.961-8.967-23.502,0-32.466c8.97-8.963,23.499-8.963,32.47,0C84.947,411.878,84.947,426.419,75.98,435.38z"/></g></svg></button>
+
+  <!-- State control buttons -->
+  <button id="edit-btn" class="fixed top-40 right-4 z-50 p-2 bg-blue-500 text-white rounded hidden">Edit</button>
+  <div class="fixed bottom-4 inset-x-0 z-50 flex justify-center space-x-4">
+    <button id="save-btn" class="bg-green-500 text-white rounded px-4 py-2 hidden">Save</button>
+    <button id="cancel-btn" class="bg-red-500 text-white rounded px-4 py-2 hidden">Cancel</button>
+  </div>
+
+  <!-- Map -->
+  <div class="min-h-screen bg-[#fde68a] flex px-4 py-12">
+    <div class="flex-1 flex flex-col bg-white rounded-lg shadow-lg p-6 overflow-hidden h-full">
+      <div id="floor-selector-container" class="mb-4"></div>
+      <!-- Grid -->
+      <div id="map-container" class="flex-1 h-full border border-gray-300 overflow-auto p-2">
+        <div id="map-grid" class="inline-grid bg-[#f3f4f6] gap-0" style="grid-template-columns: repeat(5, 2rem); grid-template-rows: repeat(5, 2rem);"></div>
+      </div>
+      <br/>
+      <button id="download-qrs-btn" class="bg-indigo-600 text-white rounded px-4 py-2 ml-2">Download QRs</button>
+    </div>
+
+        <!-- TOOLBOX PANEL (slides in/out, mid-right) -->
+    <div id="toolbox-panel" class="fixed inset-y-0 right-0 z-40 w-64 transform translate-x-full transition-transform duration-300 flex items-center">
+      <div class="mx-2 w-full max-h-[90vh] bg-white rounded-lg shadow-lg p-6 overflow-y-auto">
+        <h3 class="text-xl font-semibold mb-4 text-center">Toolbox</h3>
+        <div id="tools" class="space-y-2">
+          <button class="tool-btn w-full bg-green-500 text-white py-2 rounded" data-tool="table">Table (select cells)</button>
+          <button class="tool-btn w-full bg-blue-400 text-white py-2 rounded" data-tool="bar">Bar (select cells)</button>
+          <button class="tool-btn w-full bg-gray-500 text-white py-2 rounded" data-tool="delete">Delete Item</button>
+          <button id="resize-map-btn" class="mt-4 w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded">Resize Map</button>
+        </div>
+
+        <button id="create-item-btn" class="mt-4 w-full bg-purple-600 text-white py-2 rounded hidden">Create Item</button>
+
+        <hr class="my-4"/>
+        <p class="text-gray-600 text-sm mb-2">
+          1) Choose a tool<br/>
+          2) Tables/Bars: click cells then "Create Item"<br/>
+          3) Delete: click any cell of an item to remove it
+        </p>
+        <p class="text-sm"><strong>Selected:</strong> <span id="current-tool">None</span></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 px-4">
+  <div class="bg-white p-4 sm:p-6 rounded shadow-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
+    <h2 class="text-base sm:text-lg md:text-xl font-semibold mb-4 break-words text-center" id="confirm-modal-title">
+      Notice
+    </h2>
+    <p class="text-sm sm:text-base mb-4 break-words" id="confirm-modal-message">
+      Are you sure?
+    </p>
+    <div class="flex justify-end flex-wrap gap-2">
+      <button id="confirm-modal-cancel" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
+      <button id="confirm-modal-ok" class="bg-blue-600 text-white px-4 py-2 rounded">OK</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- Input Modal -->
+<div id="input-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white p-6 rounded shadow-lg w-96">
+    <h2 class="text-lg font-semibold mb-4" id="input-modal-title">Enter Name</h2>
+    <input id="input-modal-value" type="text" class="w-full border px-3 py-2 rounded mb-4" placeholder="Enter name" />
+    <div class="flex justify-end space-x-2">
+      <button id="input-modal-cancel" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
+      <button id="input-modal-ok" class="bg-green-600 text-white px-4 py-2 rounded">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Resize Modal -->
+<div id="resize-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white p-6 rounded shadow-lg w-80">
+    <h2 class="text-lg font-semibold mb-4">Resize Map</h2>
+    <div class="space-y-4">
+      <label class="block">
+        <span class="text-sm font-medium">New Width (X):</span>
+        <input id="resize-width" type="number" min="1" value="5"
+               class="mt-1 block w-full border rounded p-2"/>
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium">New Height (Y):</span>
+        <input id="resize-height" type="number" min="1" value="5"
+               class="mt-1 block w-full border rounded p-2"/>
+      </label>
+    </div>
+    <div class="mt-6 flex justify-end space-x-2">
+      <button id="resize-cancel" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+        Cancel
+      </button>
+      <button id="resize-confirm" class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">
+        OK
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Create Floor Modal -->
+<div id="create-floor-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+  <div class="bg-white rounded shadow-lg p-6 w-80 space-y-4">
+    <h2 class="text-lg font-semibold">Create Floor</h2>
+    
+    <div>
+      <label for="floor-name-input" class="block text-sm font-medium">Name</label>
+      <input id="floor-name-input" type="text" class="w-full border p-2 rounded" placeholder="e.g. Floor 1">
+    </div>
+
+    <div class="flex space-x-2">
+      <div class="flex-1">
+        <label for="floor-width-input" class="block text-sm font-medium">Width</label>
+        <input id="floor-width-input" type="number" class="w-full border p-2 rounded" value="5" min="1">
+      </div>
+      <div class="flex-1">
+        <label for="floor-height-input" class="block text-sm font-medium">Height</label>
+        <input id="floor-height-input" type="number" class="w-full border p-2 rounded" value="5" min="1">
+      </div>
+    </div>
+
+    <div class="flex justify-end space-x-2 pt-2">
+      <button id="create-floor-cancel" class="px-4 py-1 bg-gray-300 hover:bg-gray-400 rounded">Cancel</button>
+      <button id="create-floor-confirm" class="px-4 py-1 bg-green-500 text-white hover:bg-green-600 rounded">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR Selection Modal -->
+<div id="qr-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 px-4">
+  <div class="bg-white p-6 rounded shadow-lg w-full max-w-lg max-h-[80vh] overflow-auto">
+    <h2 class="text-xl font-semibold mb-4">Select Tables for QR</h2>
+    <div id="qr-list"></div>
+    <div class="mt-4 flex justify-between">
+      <button id="qr-select-all" class="px-4 py-2 bg-gray-300 rounded">Select All</button>
+      <div>
+        <button id="qr-cancel" class="px-4 py-2 bg-gray-300 rounded mr-2">Cancel</button>
+        <button id="qr-confirm" class="px-4 py-2 bg-indigo-600 text-white rounded">Generate PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<style>
+  /* default cells still get a border */
+  #map-grid > div {
+    @apply w-8 h-8 relative overflow-hidden box-border border cursor-pointer;
+  }
+
+  /* table/bar cells dont get border */
+  #map-grid > div.occupied {
+    border: none;
+  }
+</style>
+
+
+
+<script>
+(function(){
+function getCSRFToken() {
+  return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 0) PARSE ALL MAPS FROM SERVER
+  // ──────────────────────────────────────────────────────────────────────────
+  const allMaps = JSON.parse(
+    document.getElementById('all-maps-data').textContent
+  );
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 1) STATE, FLAGS, GLOBALS
+  // ──────────────────────────────────────────────────────────────────────────
+  let tempIdCounter = -1;
+  let viewOnly = allMaps.length > 0;    // Set "view only" mode if maps exist at load, then, are we in edit mode?
+  let currentIndex = 0;    // which map/floor is active?
+  const state = {
+    w: 5, h: 5,
+    items: {},             // { id: { tool, name, cells: [...] } }
+    nextId: 1,
+    tool: null,            // Selected tool 'table' | 'bar' | 'delete'
+    selected: new Set()
+  };
+  const ownerId = {{ profile.id }};
+  // ──────────────────────────────────────────────────────────────────────────
+  // 2) NODE REFERENCES
+  // ──────────────────────────────────────────────────────────────────────────
+  const gridEl           = document.getElementById('map-grid');
+  const container        = document.getElementById('map-container');
+  const toolsEl          = document.getElementById('tools');
+  const createBtn        = document.getElementById('create-item-btn');
+  const resizeBtn        = document.getElementById('resize-map-btn');
+  const resizeModal      = document.getElementById('resize-modal');
+  const resizeWidthInp   = document.getElementById('resize-width');
+  const resizeHeightInp  = document.getElementById('resize-height');
+  const toolboxToggleBtn = document.getElementById('toolbox-toggle');
+  const toolboxPanel     = document.getElementById('toolbox-panel');
+  const editBtn          = document.getElementById('edit-btn');
+  const saveBtn          = document.getElementById('save-btn');
+  const cancelBtn        = document.getElementById('cancel-btn');
+  const toolLbl          = document.getElementById('current-tool');
+  const downloadBtn      = document.getElementById('download-qrs-btn');
+  const qrModal          = document.getElementById('qr-modal');
+  const qrList           = document.getElementById('qr-list');
+  const qrSelectAll      = document.getElementById('qr-select-all');
+  const qrCancel         = document.getElementById('qr-cancel');
+  const qrConfirm        = document.getElementById('qr-confirm');
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 3) IMAGE SOURCES
+  // ──────────────────────────────────────────────────────────────────────────
+  const tableImg = "/media/core/Table.png";
+  const stoolImg = "/media/core/Stool.png";
+  const barImg   = "/media/core/Bar.png";
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 4) MODALs
+  // ──────────────────────────────────────────────────────────────────────────
+  function showModal({ type, title, message, placeholder }) {
+    if (viewOnly) return Promise.resolve(false);
+    const modalId = type==='confirm' ? 'confirm-modal' : 'input-modal';
+    const modal   = document.getElementById(modalId);
+    // title
+    modal.querySelector(
+      type==='confirm' ? '#confirm-modal-title' : '#input-modal-title'
+    ).textContent = title;
+    // body
+    if (type==='confirm') {
+      modal.querySelector('#confirm-modal-message')
+           .innerHTML = `<pre>${message}</pre>`;
+    } else {
+      const inp = modal.querySelector('#input-modal-value');
+      inp.placeholder = placeholder;
+      inp.value = '';
+    }
+    modal.classList.remove('hidden');
+    return new Promise(res => {
+      const ok     = modal.querySelector(type==='confirm' ? '#confirm-modal-ok' : '#input-modal-ok');
+      const cancel = modal.querySelector(type==='confirm' ? '#confirm-modal-cancel' : '#input-modal-cancel');
+      function clean() {
+        modal.classList.add('hidden');
+        ok.removeEventListener('click', onOk);
+        cancel.removeEventListener('click', onCancel);
+      }
+      function onOk()    { clean(); res(type==='confirm'? true : document.getElementById('input-modal-value').value.trim()); }
+      function onCancel(){ clean(); res(type==='confirm'? false : null); }
+      ok.addEventListener('click', onOk);
+      cancel.addEventListener('click', onCancel);
+    });
+  }
+
+  function showCreateFloorModal() {
+    return new Promise(resolve => {
+      const modal  = document.getElementById('create-floor-modal');
+      const nameEl = document.getElementById('floor-name-input');
+      const wEl    = document.getElementById('floor-width-input');
+      const hEl    = document.getElementById('floor-height-input');
+      const ok     = document.getElementById('create-floor-confirm');
+      const cancel = document.getElementById('create-floor-cancel');
+
+      // Reset
+      nameEl.value = '';
+      wEl.value = '5';
+      hEl.value = '5';
+      modal.classList.remove('hidden');
+
+      function clean() {
+        modal.classList.add('hidden');
+        ok.removeEventListener('click', onOk);
+        cancel.removeEventListener('click', onCancel);
+      }
+
+      function onOk() {
+        const name = nameEl.value.trim();
+        const w = parseInt(wEl.value);
+        const h = parseInt(hEl.value);
+        if (!name || isNaN(w) || isNaN(h) || w < 1 || h < 1) {
+          toastr.error('Fill all fields correctly');
+          return;
+        }
+        clean();
+        resolve({ name, w, h });
+      }
+
+      function onCancel() {
+        clean();
+        resolve(null);
+      }
+
+      ok.addEventListener('click', onOk);
+      cancel.addEventListener('click', onCancel);
+    });
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 5) GRID HELPERS
+  // ──────────────────────────────────────────────────────────────────────────
+  function isContiguous(cells) {
+    if (!cells.length) return false;
+    const set = new Set(cells.map(c=>`${c.x},${c.y}`)), visited=new Set(), queue=[cells[0]];
+    while(queue.length){
+      const {x,y}=queue.pop(), key=`${x},${y}`;
+      if (visited.has(key)) continue;
+      visited.add(key);
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{
+        const nx=x+dx, ny=y+dy, nk=`${nx},${ny}`;
+        if (set.has(nk)&&!visited.has(nk)) queue.push({x:nx,y:ny});
+      });
+    }
+    return visited.size===cells.length;
+  }
+  function areCellsSeparated(cells){
+    const near=new Set();
+    Object.values(state.items).forEach(itm=>{
+      if (itm.tool==='table'||itm.tool==='bar'){
+        itm.cells.forEach(({x,y})=>{
+          for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++){
+            if (dx||dy) near.add(`${x+dx},${y+dy}`);
+          }
+        });
+      }
+    });
+    return cells.every(c=>!near.has(`${c.x},${c.y}`));
+  }
+  function isOccupied(x,y){
+    return Object.values(state.items)
+      .flatMap(itm=>itm.cells)
+      .some(c=>c.x===x&&c.y===y);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 6) RENDER
+  // ──────────────────────────────────────────────────────────────────────────
+  function render(){
+    const tables = new Set();
+    const bars   = new Set();
+    Object.values(state.items).forEach(item => {
+      if (item.tool === 'table') {
+        item.cells.forEach(c => tables.add(`${c.x},${c.y}`));
+      } else if (item.tool === 'bar') {
+        item.cells.forEach(c => bars.add(`${c.x},${c.y}`));
+      }
+    });
+    // highlight tool‐button
+    Array.from(toolsEl.querySelectorAll('.tool-btn')).forEach(btn=>{
+      const active = btn.dataset.tool===state.tool;
+      btn.classList.toggle('ring-2', active);
+      btn.classList.toggle('ring-green-600', active);
+    });
+    // label
+    toolLbl.textContent = state.tool
+      ? state.tool[0].toUpperCase()+state.tool.slice(1)
+      : 'None';
+    // Create‐button
+    createBtn.classList.toggle('hidden', state.selected.size===0);
+    if (state.selected.size) {
+      createBtn.textContent = state.tool==='table'? 'Create Table':'Create Bar';
+    }
+    // grid size
+    gridEl.innerHTML = '';
+    gridEl.style.gridTemplate = `repeat(${state.h},2rem)/repeat(${state.w},2rem)`;
+    // mark occupied & stools
+    const owner = Array.from({length:state.w},()=>Array(state.h).fill(null));
+    Object.entries(state.items).forEach(([id,itm])=>{
+      itm.cells.forEach(c=>owner[c.x][c.y]=id);
+    });
+    const stools=new Set();
+    Object.values(state.items).forEach(itm=>{
+      if (itm.tool==='table') itm.cells.forEach(({x,y})=>{
+        for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){
+          if(dx||dy){
+            const sx=x+dx, sy=y+dy, k=`${sx},${sy}`;
+            if (sx>=0&&sy>=0&&sx<state.w&&sy<state.h
+               &&!owner[sx][sy]&&!state.selected.has(k)) stools.add(k);
+          }
+        }
+      });
+    });
+    // draw
+    for (let y = 0; y < state.h; y++) {
+        for (let x = 0; x < state.w; x++) {
+          const k = `${x},${y}`;
+          const div = document.createElement('div');
+          div.dataset.xy = k;
+          div.className = 'border cursor-pointer relative';
+          if (state.selected.has(k)) {
+            div.classList.add('occupied');
+            if (state.tool === 'table') {
+              div.innerHTML = `<img src="${tableImg}" class="absolute inset-0 w-full h-full object-cover">`;
+            } else if (state.tool === 'bar') {
+              div.innerHTML = `<img src="${barImg}" class="absolute inset-0 w-full h-full object-cover">`;
+            }
+          }
+          else if (owner[x][y]) {
+            div.classList.add('occupied');
+            if (bars.has(k)) {
+              div.innerHTML = `<img src="${barImg}" class="absolute inset-0 w-full h-full object-cover">`;
+            } else if (tables.has(k)) {
+              div.innerHTML = `<img src="${tableImg}" class="absolute inset-0 w-full h-full object-cover">`;
+            }
+          }
+          else if (stools.has(k)) {
+            div.innerHTML = `<img src="${stoolImg}" class="absolute inset-0 w-full h-full object-cover opacity-50">`;
+          }
+          gridEl.appendChild(div);
+        }
+      }
+    }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 7) FLOOR SELECTOR INJECTION
+  // ──────────────────────────────────────────────────────────────────────────
+  if (allMaps.length){
+    const selector = document.createElement('div');
+    selector.className = 'flex space-x-2 overflow-x-auto mb-4';
+    allMaps.forEach((m,i)=>{
+      const b=document.createElement('button');
+      b.textContent = m.name;
+      b.dataset.index = i;
+      b.className = 'px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 focus:outline-none';
+      selector.appendChild(b);
+    });
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+';
+    addBtn.className = 'px-3 py-1 rounded bg-green-500 text-white hover:bg-green-600 focus:outline-none';
+    selector.appendChild(addBtn);
+
+    container.parentNode.insertBefore(selector, container);
+    // clicking a floor:
+    selector.addEventListener('click', e=>{
+      const b=e.target.closest('button[data-index]');
+      if(!b) return;
+      loadMap(+b.dataset.index);
+    });
+
+    addBtn.addEventListener('click', async () => {
+      const result = await showCreateFloorModal();
+      if (!result) return;
+
+      const { name, w, h } = result;
+
+      const resp = await fetch(`/user/owner/${ownerId}/map-creator/floor/create`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()},
+        body: JSON.stringify({ name, w, h })
+      });
+
+      if (resp.ok) {
+        const newMap = await resp.json();
+        allMaps.push(newMap);
+
+        const b = document.createElement('button');
+        b.textContent = newMap.name;
+        b.dataset.index = allMaps.length - 1;
+        b.className = 'px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 focus:outline-none';
+        selector.insertBefore(b, addBtn);
+
+        loadMap(allMaps.length - 1);
+      } else {
+        toastr.error("Failed to create floor");
+      }
+    });
+
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 8) loadMap(i): swap in map i
+  // ──────────────────────────────────────────────────────────────────────────
+  function loadMap(i){
+    if (!viewOnly) {
+      saveStateToAllMaps();
+    }
+    currentIndex=i;
+    const m=allMaps[i];
+    state.w=m.w; state.h=m.h;
+    state.items={};
+    m.tables.forEach(tbl=>{
+      state.items[tbl.id] = {
+        id:   tbl.id,                     
+        tool: 'table',
+        name: tbl.name,
+        cells: tbl.cells.map(c=>({x:c.x,y:c.y}))
+      };
+    });
+    m.bars.forEach(bar=>{
+      state.items[bar.id] = {
+        id:   bar.id,
+        tool: 'bar',
+        cells: bar.cells.map(c=>({x:c.x,y:c.y}))
+      };
+    });
+    render();
+    if (viewOnly) {
+      toolboxToggleBtn.classList.add('hidden');
+      editBtn.classList.remove('hidden');
+    } else {
+      toolboxToggleBtn.classList.remove('hidden');
+      editBtn.classList.add('hidden');
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 9) INITIALIZE: either load first map or new‐map if there is none
+  // ──────────────────────────────────────────────────────────────────────────
+  async function initialize() {
+  if (allMaps.length) {
+    loadMap(0);
+  } else {
+    // Nnew restaurant require floor creation before continuing
+    viewOnly = false;
+
+    // Show create floor modal repeatedly until a floor is created
+    let floorCreated = false;
+    while (!floorCreated) {
+      const result = await showCreateFloorModal();
+      if (!result) {
+        toastr.warning('You must create at least one floor to continue.');
+        // Loop again until user creates a floor, unskipeable
+        continue;
+      }
+
+      const { name, w, h } = result;
+
+      const resp = await fetch(`/user/owner/${ownerId}/map-creator/floor/create`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()},
+        body: JSON.stringify({ name, w, h })
+      });
+
+      if (resp.ok) {
+        const newMap = await resp.json();
+        allMaps.push(newMap);
+        floorCreated = true;
+      } else {
+        toastr.error("Failed to create floor");
+      }
+    }
+
+    // Once a floor is created, reload page to work properly
+    location.reload();
+  }
+  }
+  initialize();
+
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 10) GRID CLICK
+  // ──────────────────────────────────────────────────────────────────────────
+  gridEl.addEventListener('click', async e=>{
+    if(viewOnly) return;
+    const cell=e.target.closest('div[data-xy]'); if(!cell||!state.tool) return;
+    const [x,y]=cell.dataset.xy.split(',').map(Number);
+    if(state.tool==='delete'){
+      for(let id in state.items){
+        if(state.items[id].cells.some(c=>c.x===x&&c.y===y)){
+          if(await showModal({type:'confirm',title:'Deleting Item',message:'Saving changes after deleting this item, will be permanent.\nThe item will be deleted.\nAs well as all data related to it(Orders, states....).\nAre you sure you want to delete this item?'})){
+            delete state.items[id]; render();
+          }
+          return;
+        }
+      }
+      return;
+    }
+    const key=`${x},${y}`;
+    if(state.selected.has(key)){
+      state.selected.delete(key);
+    } else {
+      if(isOccupied(x,y)){ toastr.warning('This cell is already occupied'); return; }
+      const tmp=[...state.selected].map(k=>{const [sx,sy]=k.split(',').map(Number);return{x:sx,y:sy};});
+      tmp.push({x,y});
+      if(!isContiguous(tmp)){ toastr.warning('Cells of the same item must be contiguos'); return; }
+      if(!areCellsSeparated(tmp)){ toastr.warning('Items must be separated at least by 2 empty cells'); return; }
+      state.selected.add(key);
+    }
+    render();
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 11) TOOLBOX BUTTONS
+  // ──────────────────────────────────────────────────────────────────────────
+  toolsEl.addEventListener('click', e=>{
+    if(viewOnly) return;
+    const b=e.target.closest('.tool-btn'); if(!b) return;
+    state.tool=b.dataset.tool;
+    state.selected.clear();
+    render();
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 12) CREATE ITEM
+  // ──────────────────────────────────────────────────────────────────────────
+  createBtn.addEventListener('click', async ()=>{
+    if(viewOnly||!state.tool||!state.selected.size) return;
+    const cells=[...state.selected].map(k=>{const [x,y]=k.split(',').map(Number);return{x,y};});
+    if(!isContiguous(cells)||!areCellsSeparated(cells)){ toastr.warning('Invalid'); return; }
+    let name='bar';
+    if(state.tool==='table'){
+      const v=await showModal({type:'input',title:'Table name',placeholder:'Table 1'});
+      if(!v) return; name=v;
+    }
+    // get a fresh temporary id
+    const newId = tempIdCounter--;
+    state.items[newId] = {
+      id:   null,          
+      tool: state.tool,
+      name,                
+      cells
+    };
+    state.selected.clear();
+    render();
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 13) RESIZE
+  // ──────────────────────────────────────────────────────────────────────────
+  resizeBtn.addEventListener('click', ()=>{
+    if(viewOnly) return;
+    resizeWidthInp.value=state.w;
+    resizeHeightInp.value=state.h;
+    resizeModal.classList.remove('hidden');
+  });
+  document.getElementById('resize-cancel').addEventListener('click', ()=>{
+    resizeModal.classList.add('hidden');
+  });
+  document.getElementById('resize-confirm').addEventListener('click', async ()=>{
+    resizeModal.classList.add('hidden');
+    const w=+resizeWidthInp.value, h=+resizeHeightInp.value;
+    if(w<1||h<1){ toastr.error('≥1'); return; }
+    const toDel=[];
+    for(let id in state.items){
+      if(state.items[id].cells.some(c=>c.x>=w||c.y>=h)) toDel.push(id);
+    }
+    if(toDel.length){
+      const names=toDel.map(i=>state.items[i].name).join('\n');
+      if(!(await showModal({type:'confirm',title:'Objects out of bounds will be deleted', message:`The next items will be eliminated:\n${names}`}))) return;
+      toDel.forEach(i=>delete state.items[i]);
+    }
+    state.w=w; state.h=h; state.selected.clear();
+    render();
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 14) TOOLBOX PANEL SLIDE
+  // ──────────────────────────────────────────────────────────────────────────
+  toolboxToggleBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const open=!toolboxPanel.classList.toggle('translate-x-full');
+    toolboxToggleBtn.classList.toggle('hidden', open);
+  });
+  document.addEventListener('click', e=>{
+    if(!toolboxPanel.classList.contains('translate-x-full')
+       &&!e.target.closest('#toolbox-panel')
+       &&e.target!==toolboxToggleBtn){
+      toolboxPanel.classList.add('translate-x-full');
+      toolboxToggleBtn.classList.remove('hidden');
+    }
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 15) EDIT / SAVE / CANCEL
+  // ──────────────────────────────────────────────────────────────────────────
+  editBtn.addEventListener('click', ()=>{
+    viewOnly=false;
+    editBtn.classList.add('hidden');
+    saveBtn.classList.remove('hidden');
+    cancelBtn.classList.remove('hidden');
+    toolboxToggleBtn.classList.remove('hidden');
+    state.tool='table';
+    render();
+  });
+  cancelBtn.addEventListener('click', ()=>window.location.reload());
+  saveBtn.addEventListener('click', async () => {
+    if (state.selected.size > 0) {
+      state.selected.clear();
+      render();
+    }
+    saveStateToAllMaps();
+    const payload = { maps: allMaps };
+
+    try {
+      const res = await fetch(`/user/owner/${ownerId}/map-creator/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      toastr.success('Maps saved successfully!');
+      // switch back to viewOnly
+      viewOnly = true;
+      saveBtn.classList.add('hidden');
+      cancelBtn.classList.add('hidden');
+      editBtn.classList.remove('hidden');
+      toolboxToggleBtn.classList.add('hidden');
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      toastr.error('Failed to save maps');
+    }
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 16) Helper to save the editing state
+  // ──────────────────────────────────────────────────────────────────────────
+  function saveStateToAllMaps() {
+    const dest = allMaps[currentIndex];
+    dest.w = state.w;
+    dest.h = state.h;
+
+    dest.tables = Object.values(state.items)
+      .filter(it => it.tool === 'table')
+      .map(it => {
+        const out = { name: it.name, cells: it.cells };
+        if (it.id && it.id > 0) out.id = it.id;
+        return out;
+      });
+
+    dest.bars = Object.values(state.items)
+      .filter(it => it.tool === 'bar')
+      .map(it => {
+        const out = { cells: it.cells };
+        if (it.id && it.id > 0) out.id = it.id;
+        return out;
+      });
+  }
+
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 17) QR code generator
+  // ──────────────────────────────────────────────────────────────────────────
+
+  downloadBtn.addEventListener('click', ()=>{
+    // build the list grouped by floor
+    qrList.innerHTML = '';
+    allMaps.forEach((m, floorIdx) => {
+      const fld = document.createElement('div');
+      fld.className = 'mb-4';
+      fld.innerHTML = `<strong>${m.name}</strong><br/>`;
+      m.tables.forEach(tbl => {
+        const id = `qr-tbl-${tbl.id}`;
+        fld.innerHTML += `
+          <label class="inline-block mr-4">
+            <input type="checkbox" class="qr-checkbox" data-tbl-id="${tbl.id}" id="${id}"/>
+            ${tbl.name}
+          </label>
+        `;
+      });
+      qrList.appendChild(fld);
+    });
+    qrModal.classList.remove('hidden');
+  });
+
+  qrSelectAll.addEventListener('click', ()=>{
+    document.querySelectorAll('.qr-checkbox')
+            .forEach(chk => chk.checked = true);
+  });
+
+  qrCancel.addEventListener('click', ()=> {
+    qrModal.classList.add('hidden');
+  });
+
+  qrConfirm.addEventListener('click', async ()=>{
+    const selected = Array.from(document.querySelectorAll('.qr-checkbox:checked'))
+      .map(chk => parseInt(chk.dataset.tblId,10));
+    if (selected.length === 0) {
+      toastr.warning('Select at least one table');
+      return;
+    }
+    qrModal.classList.add('hidden');
+
+    // Fetch to GenerateQR
+    const resp = await fetch(
+      `/user/owner/${ownerId}/map-creator/qr`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken(),
+        },
+        body: JSON.stringify({ tables: selected })
+      }
+    );
+    if (!resp.ok) {
+      toastr.error('Failed to generate PDF');
+      return;
+    }
+    // download the file
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `table_qrs.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+})();
+</script>
+
+{% endblock content %}
