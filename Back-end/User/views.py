@@ -284,12 +284,12 @@ class OwnerView(LoginRequiredMixin, TemplateView):
         owner_id = self.kwargs.get('owner_id')
         profile = Profile.objects.get(id=owner_id)
 
-        # Compute today’s date and filter today's active orders
+        # Compute today’s date and filter
         today = datetime.now().date()
         orders_today = TableOrder.objects.filter(
             table__map__restaurant__owner=profile,
             date__date=today,
-            active=True
+            active=False
         )
 
         # Aggregate profit and cost
