@@ -40,13 +40,12 @@
 
           {% for category in menu.get_Menu_Categories.all %}
             <div class="relative inline-block overflow-visible">
-            <button
-              class="category-btn flex items-center space-x-2 text-gray-700 px-4 py-2 rounded-full focus:outline-none select-category
-                {% if category.active %}
-                  bg-gray-200 hover:bg-gray-300
-                {% else %}
-                  bg-red-200   hover:bg-red-300
-                {% endif %}"
+            <button class="category-btn flex items-center space-x-2 text-gray-700 px-4 py-2 rounded-full focus:outline-none select-category whitespace-nowrap flex-shrink-0
+             {% if category.active %}
+               bg-gray-200 hover:bg-gray-300
+             {% else %}
+               bg-red-200 hover:bg-red-300
+             {% endif %}"
               data-id="{{ category.id }}" first-category-identifire="{{ category.id }}{{ category.name }}">
               <span>{{ category.name }}</span>
 
@@ -398,73 +397,84 @@ $('#confirm-edit-category-btn').click(() => {
     // Load elements
     function loadCategoryElements(catId) {
       $.get(`/user/owner/${ownerId}/menu/category/${catId}/elements/`)
-       .done(response => {
-         const cards = response.elements.map(element => `
-           <div id="element-${element.id}" class="relative flex items-center bg-white rounded-lg shadow-md p-4 space-x-4 overflow-x-scroll overflow-y-visible min-w-full min-w-max" data-allergens='${JSON.stringify(element.allergens)}' data-recipe="${(element.recipe || '').replace(/"/g, '&quot;')}">
-             ${element.icon_url
-               ? `<img src="${element.icon_url}" class="w-24 h-24 object-cover rounded">`
-               : `<div class="w-24 h-24 bg-gray-100 rounded flex items-center justify-center">No Image</div>`
-             }
-             <div class="flex-1">
-               <p class="font-semibold text-lg">${element.name}</p>
-               <p class="text-sm text-gray-600">${element.description}</p>
-               <p class="text-sm text-blue-600">Type: ${element.type}</p>
-               <p class="text-sm text-green-600">Price: €${element.price}</p>
-               <p class="text-sm text-red-600">Cost: €${element.cost}</p>
-              ${element.allergens.length > 0
-                          ? `<div class="flex flex-wrap mt-2 space-x-1">
-                                ${element.allergens.map(a => `
-                                  <div class="w-6 h-6 rounded-full overflow-hidden border">
-                                    ${a.icon_url
-                                      ? `<img src="${a.icon_url}"
-                                              alt="${a.name}"
-                                              title="${a.name}"
-                                              class="object-cover w-full h-full">`
-                                      : `<div class="bg-gray-200 w-full h-full flex items-center justify-center text-xs text-gray-600" title="${a.name}">
-                                          ${a.name.slice(0,1)}
-                                        </div>`
-                                    }
-                            </div>
+      .done(response => {
+        const cards = response.elements.map(el => {
+          const allergensData = JSON.stringify(el.allergens);
+          const recipeData    = (el.recipe || '').replace(/"/g, '&quot;');
+
+          return `
+      <div id="element-${el.id}" class="bg-white shadow rounded-lg p-4 overflow-x-auto max-w-full" data-allergens='${allergensData}' data-recipe="${recipeData}">
+        <div class="flex flex-wrap md:flex-nowrap justify-between items-center gap-4 min-w-max">
+          ${ el.icon_url
+            ? `<img src="${el.icon_url}" class="w-24 h-24 object-cover rounded">`
+            : `<div class="w-24 h-24 bg-gray-100 rounded flex items-center justify-center">
+                  No Image
+                </div>`
+          }
+          <div class="flex-1">
+            <p class="font-semibold text-lg">${el.name}</p>
+            <p class="text-sm text-gray-600">${el.description}</p>
+            <p class="text-sm text-blue-600">Type: ${el.type}</p>
+            <p class="text-sm text-green-600">Price: €${el.price}</p>
+            <p class="text-sm text-red-600">Cost: €${el.cost}</p>
+
+            ${ el.allergens.length
+              ? `<div class="flex flex-wrap mt-2 space-x-1">
+                  ${el.allergens.map(a => `
+                    <div class="w-6 h-6 rounded-full overflow-hidden border">
+                      ${ a.icon_url
+                        ? `<img src="${a.icon_url}" alt="${a.name}" title="${a.name}" class="object-cover w-full h-full">`
+                        : `<div class="bg-gray-200 w-full h-full flex items-center justify-center text-xs text-gray-600" title="${a.name}">
+                              ${a.name.charAt(0)}
+                            </div>`
+                      }
+                    </div>
                   `).join('')}
                 </div>`
-             : ``
-           }
-             </div>
+              : ``
+            }
+          </div>
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <span class="text-sm toggle-label">
+              ${el.active ? 'Active' : 'Inactive'}
+            </span>
+            <div class="relative">
+              <input type="checkbox" class="sr-only peer toggle-active" data-element-id="${el.id}" ${el.active ? 'checked' : ''}>
+              <div class="w-12 h-6 bg-gray-300 rounded-full peer-checked:bg-green-400 transition-colors"></div>
+              <div class="absolute top-0.5 left-1 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:left-6"></div>
+            </div>
+          </label>
+          <div class="relative ml-4">
+            <button class="three-dots p-2">
+              <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 
+                        11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 
+                        2 2 0 014 0z"/>
+              </svg>
+            </button>
+            <div class="dropdown absolute right-0 mt-2 w-32 bg-white border rounded shadow-lg hidden z-10">
+              <button class="w-full text-left px-4 py-2 hover:bg-gray-100 edit-element" data-element-id="${el.id}">Edit</button>
+              <button class="w-full text-left px-4 py-2 hover:bg-gray-100 delete-element" data-element-id="${el.id}">Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+        }).join('');
 
-             <label class="flex items-center space-x-2 cursor-pointer">
-              <span class="text-sm toggle-label">${element.active ? 'Active' : 'Inactive'}</span>
-              <div class="relative">
-                <input type="checkbox" class="sr-only peer toggle-active" data-element-id="${element.id}" ${element.active ? 'checked' : ''}/>
-                <div class="w-12 h-6 bg-gray-300 rounded-full peer-checked:bg-green-400 transition-colors"></div>
-                <div class="absolute top-0.5 left-1 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:left-6 transition-all"></div>
-              </div>
-            </label>
-
-             <!-- 3-dot menu -->
-             <div class="relative ml-4">
-               <button class="three-dots p-2">
-                 <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                   <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z"/>
-                 </svg>
-               </button>
-               <div class="dropdown absolute right-0 mt-2 w-32 bg-white border rounded shadow-lg hidden z-10">
-                 <button class="w-full text-left px-4 py-2 hover:bg-gray-100 edit-element" data-element-id="${element.id}">Edit</button>
-                 <button class="w-full text-left px-4 py-2 hover:bg-gray-100 delete-element" data-element-id="${element.id}">Delete</button>
-               </div>
-             </div>
-           </div>
-         `).join('');
-         $('#category-elements').html(`
-           <div class="mb-4">
-             <div id="elements-list" class="space-y-4">${cards}</div>
-             <div class="flex justify-center">
-               <button id="add-element-btn" class="bg-gray-300 px-4 py-2 rounded-full mt-2" data-category-id="${catId}">+</button>
-             </div>
-           </div>
-         `);
-       })
-       .fail(() => toastr.error('Failed to load items.'));
+        $('#category-elements').html(`
+          <div class="mb-4">
+            <div id="elements-list" class="space-y-4">
+              ${cards}
+            </div>
+            <div class="flex justify-center">
+              <button id="add-element-btn" class="bg-gray-300 px-4 py-2 rounded-full mt-2" data-category-id="${catId}">+</button>
+            </div>
+          </div>
+        `);
+      })
+      .fail(() => toastr.error('Failed to load items.'));
     }
+
 
     // Category select
     $(document).on('click', '.category-btn', function() {

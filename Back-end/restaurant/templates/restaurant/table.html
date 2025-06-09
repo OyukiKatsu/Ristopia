@@ -37,9 +37,9 @@
       </header>
 
       <!-- Category Bar -->
-      <nav class="bg-yellow-100 overflow-x-auto whitespace-no-wrap p-2 z-0">
+      <nav class="bg-yellow-100 overflow-x-auto whitespace-nowrap p-2 z-0">
         <transition-group tag="div" name="cat" enter-active-class="animate__animated animate__fadeInRight" leave-active-class="animate__animated animate__fadeOutLeft" class="inline-flex space-x-2">
-          <button v-for="cat in categories" :key="cat.id" @click="selectCategory(cat.id)" :class="['px-4 py-2 rounded-full text-sm font-medium flex-shrink-0', selected === cat.id ? 'bg-yellow-400 text-white' : 'bg-white text-gray-700']">
+          <button v-for="cat in categories" :key="cat.id" @click="selectCategory(cat.id)" :class="['px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap flex-shrink-0', selected === cat.id ? 'bg-yellow-400 text-white' : 'bg-white text-gray-700']">
             [[ cat.name ]]
           </button>
         </transition-group>

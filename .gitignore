@@ -1,0 +1,35 @@
+# 1) Byte-code and caches
+**/__pycache__/
+**/*.py[cod]
+*$py.class
+
+# 2) Django migration caches
+**/migrations/**/__pycache__/
+**/migrations/*.py[cod]
+
+# 3) Media uploads
+#    (so you don’t accidentally commit user-uploaded profile pics, icons, etc.)
+Back-End/media/profile
+Back-End/media/allergen_icons
+Back-End/media/restaurant_icons
+
+# 4) Virtual environments
+env/
+
+# 5) Environment-specific settings
+*.env
+*.local
+*.ini
+*.secret
+
+# 6) Database files
+*.sqlite3
+*.db
+
+# 7) IDE / Editor / OS files
+# Visual Studio Code
+.vscode/
+
+
+# 8) Data.txt
+data.txt

@@ -1,7 +1,26 @@
-# Initial_DATA.py
-#python manage.py shell
-#exec(open('Initial_DATA.py', encoding='utf-8').read())
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+To seed your DB, just do:
+    $ python Initial_DATA.py
+"""
+
 import os
+import sys
+import subprocess
+
+# If we're running outside manage.py shell, re-spawn inside it:
+if __name__ == '__main__' and 'DJANGO_SETTINGS_MODULE' not in os.environ:
+    subprocess.run([
+        sys.executable, 'manage.py', 'shell', '-c',
+        "exec(open('Initial_DATA.py', encoding='utf-8').read()); exit()"
+    ])
+    sys.exit(0)
+
+# ————————————————————————————————
+# Now inside manage.py shell
+# ————————————————————————————————
+
 import random
 import django
 from datetime import datetime
@@ -9,477 +28,323 @@ from django.conf import settings
 from django.core.files import File
 from django.contrib.auth.models import User
 from django.core.management import call_command
+from django.db import transaction
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'TFG.settings')
+django.setup()
 
 from core.models import (
-    Allergen,
-    Profile,
-    Restaurante,
-    Worker,
-    Menu,
-    Category,
-    CategoryElement,
-    Map,
-    Table,
-    TableCell,
-    Bar,
-    BarCell,
+    Allergen, Profile, Restaurante, Worker,
+    Menu, Category, CategoryElement,
+    Map, Table, TableCell, Bar, BarCell,
+    TableOrder, OrderState
 )
 
 # ————————————— OPEN LOG FILE —————————————
 log_path = os.path.join(os.getcwd(), 'data.txt')
 log_file = open(log_path, 'w', encoding='utf-8')
-
 def log(msg: str):
-    """Print to console AND write to data.txt."""
     print(msg)
-    log_file.write(msg + '\n')
+    log_file.write(f"{datetime.now():%Y-%m-%d %H:%M:%S} | {msg}\n")
 
-# — (1) Ensure Django is configured if run standalone:
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'TFG.settings')
-django.setup()
-
-# — (2) Run migrations:
-log(">>> Running makemigrations…")
+# (1) Migrations
+log(">>> makemigrations…")
 try:
-    call_command('makemigrations', 'core', interactive=False)
-    log("    • makemigrations done.")
+    call_command('makemigrations', 'core', interactive=False, verbosity=0)
+    log("    • OK")
 except Exception as e:
-    log(f"    • makemigrations output: {e}")
+    log(f"    • Error: {e!r}")
+log(">>> migrate…")
+call_command('migrate', interactive=False, verbosity=0)
+log("    • OK\n")
 
-log(">>> Running migrate…")
-call_command('migrate', interactive=False)
-log("    • migrate done.")
-
-# ────────────────────────────────────
-#   BORRAR TODO EL CONTENIDO EXISTENTE
-# ────────────────────────────────────
-log(">>> Clearing existing data from all tables…")
-from django.db import transaction
-
+# (2) Flush in correct order
+log(">>> Clearing existing data…")
 with transaction.atomic():
-    from core.models import OrderState, TableOrder
     OrderState.objects.all().delete()
     TableOrder.objects.all().delete()
-
-    from core.models import TableCell, BarCell
     TableCell.objects.all().delete()
     BarCell.objects.all().delete()
-
-    from core.models import Table, Bar
     Table.objects.all().delete()
     Bar.objects.all().delete()
-
-    from core.models import Map
     Map.objects.all().delete()
-
-    from core.models import CategoryElement, Category
     CategoryElement.objects.all().delete()
     Category.objects.all().delete()
-
-    from core.models import Menu
     Menu.objects.all().delete()
-
-    from core.models import Worker
     Worker.objects.all().delete()
-
-    from core.models import Restaurante
     Restaurante.objects.all().delete()
-
-    from core.models import Profile
     Profile.objects.all().delete()
-
     User.objects.filter(is_superuser=False).delete()
-
-    from core.models import Allergen
     Allergen.objects.all().delete()
+log("    • Cleared\n")
 
-log(">>> Database cleared.\n")
+# Icon folders
+ALLERGEN_ICON_DIR    = os.path.join(settings.MEDIA_ROOT, 'core/forInitialData/allergen_icons')
+OWNER_ICON_DIR       = os.path.join(settings.MEDIA_ROOT, 'core/forInitialData/owner_icon')
+WORKERS_ICON_DIR     = os.path.join(settings.MEDIA_ROOT, 'core/forInitialData/workers_icons')
+RESTAURANT_ICON_DIR  = os.path.join(settings.MEDIA_ROOT, 'core/forInitialData/restaurant_icons')
+ELEMENTS_ICON_DIR    = os.path.join(settings.MEDIA_ROOT, 'core/forInitialData/elements_icons')
 
-# ───────────────────────────────────────────────
-# 1. Folders where your “initial” icons live. Adjust as needed.
-ALLERGEN_ICON_DIR = os.path.join(settings.MEDIA_ROOT, 'core/forInitialData/allergen_icons')
-ELEMENTS_ICON_DIR = os.path.join(settings.MEDIA_ROOT, 'core/forInitialData/elements_icons')  # not used
-OWNER_ICON_DIR    = os.path.join(settings.MEDIA_ROOT, 'core/forInitialData/owner_icon')
-WORKERS_ICON_DIR  = os.path.join(settings.MEDIA_ROOT, 'core/forInitialData/workers_icons')
-# ───────────────────────────────────────────────
+# A. Allergens
+log("=== Seeding Allergens ===")
+for name in [
+    "Gluten","Crustaceans","Egg","Fish","Peanuts",
+    "Soybeans","Milk","Treenuts","Celery",
+    "Mustard","Sesame","Lupin","Molluscs",
+]:
+    alg, created = Allergen.objects.get_or_create(name=name)
+    p = os.path.join(ALLERGEN_ICON_DIR, f"{name}.png")
+    if os.path.exists(p):
+        with open(p,'rb') as f:
+            alg.icon.save(f"{name}.png", File(f), save=True)
+        log(f"  • Icon for {name}")
+    log(f"  • {'Created' if created else 'Exists'} {name}")
+log(f"=== {Allergen.objects.count()} Allergens ===\n")
 
-# ----------------------------------------------------------------------------
-# PART A: CREATE ALLERGENS
-allergen_names = [
-    "Gluten", "Crustaceans", "Egg", "Fish", "Peanuts",
-    "Soybeans", "Milk", "Treenuts", "Celery",
-    "Mustard", "Sesame", "Lupin", "Molluscs",
-]
-log("=== Creating (or updating) allergens ===")
-for name in allergen_names:
-    allergen, created = Allergen.objects.get_or_create(name=name)
-    icon_filename = f"{name}.png"
-    icon_path = os.path.join(ALLERGEN_ICON_DIR, icon_filename)
-
-    if os.path.exists(icon_path):
-        with open(icon_path, 'rb') as f:
-            allergen.icon.save(icon_filename, File(f), save=True)
-        log(f"  • Icon set for: {name}")
-    else:
-        log(f"  • (No icon found for {name}, skipping icon)")
-
-    if created:
-        log(f"  • Created allergen: {name}")
-    else:
-        log(f"  • Already existed: {name}")
-
-log(f"=== Done with allergens. Total in DB: {Allergen.objects.count()} ===\n")
-
-# ----------------------------------------------------------------------------
-# PART B: CREATE OWNER USER + PROFILE
-log("=== Creating owner user/profile ===")
-
-owner_username = 'Oyuki_Katsu'
-owner_email    = 'gjaraizm@gmail.com'
-owner_password = 'testing1234'
-
-owner_user, was_new = User.objects.get_or_create(
-    username=owner_username,
-    defaults={'email': owner_email}
+# B. Owner
+log("=== Seeding Owner ===")
+owner_u, cu = User.objects.get_or_create(
+    username='Oyuki_Katsu', defaults={'email':'gjaraizm@gmail.com'}
 )
-if was_new:
-    owner_user.set_password(owner_password)
-    owner_user.save()
-    log(f"  • Created User: {owner_username} / {owner_email}")
+if cu:
+    owner_u.set_password('testing1234'); owner_u.save()
+    log("  • Created User Oyuki_Katsu / testing1234")
 else:
-    log(f"  • User {owner_username} already exists (skipping password‐set).")
-
-owner_profile, prof_created = Profile.objects.get_or_create(
-    user=owner_user,
-    defaults={'email': owner_email}
+    log("  • User existed")
+owner_p, cp = Profile.objects.get_or_create(
+    user=owner_u, defaults={'email':owner_u.email}
 )
-if prof_created:
-    files = [
-        fn for fn in os.listdir(OWNER_ICON_DIR)
-        if fn.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))
-    ]
-    if files:
-        chosen = random.choice(files)
-        chosen_path = os.path.join(OWNER_ICON_DIR, chosen)
-        with open(chosen_path, 'rb') as f:
-            owner_profile.profile_picture.save(chosen, File(f), save=True)
-        log(f"  • Picked random owner icon: {chosen}")
-    else:
-        log("  • (No files found in OWNER_ICON_DIR; owner keeps default icon.)")
-    owner_profile.save()
-    log(f"  • Created Profile for owner: {owner_profile.user.username}")
+if cp:
+    # pick any owner icon (or skip if none)
+    imgs = [f for f in os.listdir(OWNER_ICON_DIR) if f.lower().endswith('.png')]
+    if imgs:
+        pick = random.choice(imgs)
+        with open(os.path.join(OWNER_ICON_DIR,pick),'rb') as f:
+            owner_p.profile_picture.save(pick, File(f), save=True)
+        log(f"  • Owner icon: {pick}")
+    owner_p.save()
+    log("  • Profile created")
 else:
-    log(f"  • Owner profile already exists for {owner_profile.user.username}. No new Profile created.")
-
+    log("  • Profile existed")
 log("")
 
-# ----------------------------------------------------------------------------
-# PART C: CREATE RESTAURANT “ASADOR MONTEQUINTO”
-log("=== Creating restaurant “ASADOR MONTEQUINTO” ===")
-restaurant_name = "ASADOR MONTEQUINTO"
-
-restaurant, rest_created = Restaurante.objects.get_or_create(
-    name=restaurant_name,
-    defaults={'owner': owner_profile}
+# C. Restaurant
+log("=== Seeding Restaurant ===")
+rest, cr = Restaurante.objects.get_or_create(
+    name="ASADOR MONTEQUINTO", defaults={'owner':owner_p}
 )
-if rest_created:
-    if owner_profile.profile_picture and os.path.exists(owner_profile.profile_picture.path):
-        icon_basename = os.path.basename(owner_profile.profile_picture.path)
-        with open(owner_profile.profile_picture.path, 'rb') as f:
-            restaurant.icon.save(icon_basename, File(f), save=True)
-        log(f"  • Saved restaurant icon from owner’s profile picture ({icon_basename})")
-    else:
-        log("  • Owner has no profile picture on disk; restaurant will have no icon.")
-    restaurant.owner = owner_profile
-    restaurant.save()
-    log(f"  • Created Restaurant: {restaurant.name}")
+if cr:
+    # use your Asador_Montequinto.png
+    rest_icon = os.path.join(RESTAURANT_ICON_DIR, 'Asador_Montequinto.png')
+    if os.path.exists(rest_icon):
+        with open(rest_icon,'rb') as f:
+            rest.icon.save('Asador_Montequinto.png', File(f), save=True)
+        log("  • Restaurant icon set")
+    rest.save()
+    log("  • Restaurant created")
 else:
-    log(f"  • Restaurant {restaurant.name} already exists (skipping).")
-
+    log("  • Restaurant existed")
 log("")
 
-# ----------------------------------------------------------------------------
-# PART D: CREATE WORKERS (CHEF_TEST and WAITER_TEST)
-log("=== Creating worker users/profiles ===")
-workers_data = [
-    {
-        'username':   'CHEF_TEST',
-        'email':      'xgjarmor597@ieshnosmachado.org',
-        'login_code': '12345',
-        'type':       'Chef',
-    },
-    {
-        'username':   'WAITER_TEST',
-        'email':      'pwpvivaecyp@gmail.com',
-        'login_code': '54321',
-        'type':       'Waiter',
-    }
-]
-
-for w in workers_data:
-    user_obj, created_user = User.objects.get_or_create(
-        username=w['username'],
-        defaults={'email': w['email']}
-    )
-
-    if created_user:
-        user_obj.set_password("default1234")
-        user_obj.save()
-        log(f"  • Created user: {w['username']} / {w['email']} (password=default1234)")
+# D. Workers (first gets first file, second gets second)
+log("=== Seeding Workers ===")
+worker_files = sorted([
+    f for f in os.listdir(WORKERS_ICON_DIR)
+    if f.lower().endswith('.png')
+])
+for idx, (uname,email,code,role) in enumerate([
+    ('CHEF_TEST','xgjarmor597@ieshnosmachado.org','12345','Chef'),
+    ('WAITER_TEST','pwpvivaecyp@gmail.com','54321','Waiter'),
+]):
+    u, cu2 = User.objects.get_or_create(username=uname, defaults={'email':email})
+    if cu2:
+        u.set_password('default1234'); u.save()
+        log(f"  • Created user {uname}/default1234")
     else:
-        log(f"  • User {w['username']} already exists.")
-
-    prof_obj, prof_was_new = Profile.objects.get_or_create(
-        user=user_obj,
-        defaults={'email': w['email']}
-    )
-    if prof_was_new:
-        files = [
-            fn for fn in os.listdir(WORKERS_ICON_DIR)
-            if fn.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))
-        ]
-        if files:
-            chosen = random.choice(files)
-            chosen_path = os.path.join(WORKERS_ICON_DIR, chosen)
-            with open(chosen_path, 'rb') as f:
-                prof_obj.profile_picture.save(chosen, File(f), save=True)
-            log(f"    • Picked random worker icon: {chosen}")
-        else:
-            log("    • (No files found in WORKERS_ICON_DIR; worker keeps default icon.)")
-        prof_obj.save()
-        log(f"    • Created Profile for worker: {prof_obj.user.username}")
+        log(f"  • User {uname} existed")
+    p, cp2 = Profile.objects.get_or_create(user=u, defaults={'email':u.email})
+    if cp2:
+        # assign icon deterministically
+        if idx < len(worker_files):
+            wf = worker_files[idx]
+            with open(os.path.join(WORKERS_ICON_DIR,wf),'rb') as f:
+                p.profile_picture.save(wf, File(f), save=True)
+            log(f"    • Worker icon: {wf}")
+        p.save()
+        log(f"    • Profile for {uname} created")
     else:
-        log(f"    • Profile already exists for worker {prof_obj.user.username}.")
-
-    worker_obj, worker_created = Worker.objects.get_or_create(
-        user=prof_obj,
-        restaurant=restaurant,
-        defaults={
-            'login_code': w['login_code'],
-            'type':       w['type'],
-            'active':     True
-        }
+        log(f"    • Profile for {uname} existed")
+    w, cw = Worker.objects.get_or_create(
+        user=p, restaurant=rest,
+        defaults={'login_code':code,'type':role,'active':True}
     )
-    if worker_created:
-        log(f"    • Created Worker: {w['username']} as {w['type']} (code {w['login_code']})")
-    else:
-        log(f"    • Worker {w['username']} already existed for this restaurant. Skipping.")
-
+    log(f"    • {'Created' if cw else 'Exists'} Worker {uname} ({role}) code={code}")
 log("")
 
-# ----------------------------------------------------------------------------
-# PART E: CREATE MENU + CATEGORIES + CATEGORYELEMENTS
-log("=== Creating menu, categories, and category elements ===")
-menu_obj, menu_created = Menu.objects.get_or_create(restaurant=restaurant)
-if menu_created:
-    log(f"  • Created Menu for restaurant {restaurant.name}")
-else:
-    log(f"  • Menu for {restaurant.name} already exists")
+# — PART E: MENU, CATEGORIES, ELEMENTS & ALLERGEN MAPPING —
+log("=== Seeding Menu / Categories / Elements ===")
+menu, cm = Menu.objects.get_or_create(restaurant=rest)
+if cm: log(f"  • Menu for {rest.name}")
 
+# Define categories & elements, including `allergens` list
 categories_data = [
     {
         'name': 'Drinks',
         'elements': [
-            {'name': 'Mineral Water',    'desc': 'Still mineral water (500ml)',       'price': '1.50',  'cost': '0.30',  'type': 'Drink',       'recipe': 'Serve cold.'},
-            {'name': 'Coca‐Cola',         'desc': 'Coca‐Cola (330ml)',                 'price': '2.00',  'cost': '0.50',  'type': 'Drink',       'recipe': 'Serve cold.'},
-            {'name': 'Beer (Caña)',       'desc': 'House draft beer (200ml)',         'price': '2.50',  'cost': '0.70',  'type': 'Drink',       'recipe': 'Serve cold with foamy head.'},
-            {'name': 'Red Wine Glass',    'desc': 'Glass of Rioja (125ml)',           'price': '3.50',  'cost': '1.00',  'type': 'Drink',       'recipe': 'Serve at room temperature.'},
-            {'name': 'Orange Juice',      'desc': 'Fresh‐squeezed orange juice (300ml)','price': '3.00',  'cost': '0.80',  'type': 'Drink',       'recipe': 'Serve cold with ice.'},
+            {'name': 'Coca-Cola',        'desc': '330 ml can',                 'price': '2.00',  'cost': '0.50',  'type': 'Drink',       'recipe': 'Serve ice-cold',                      'allergens': []},
+            {'name': 'Orange Juice',     'desc': 'Fresh-squeezed 300 ml',      'price': '3.00',  'cost': '0.80',  'type': 'Drink',       'recipe': 'Shake and serve',                    'allergens': []},
+            {'name': 'Peanut Smoothie',  'desc': 'Rich & creamy 350 ml',       'price': '4.50',  'cost': '1.20',  'type': 'Drink',       'recipe': 'Blend peanuts & banana',             'allergens': ['Peanuts', 'Milk']},
+            {'name': 'Mango Lassi',      'desc': 'Yogurt drink 300 ml',        'price': '4.00',  'cost': '1.00',  'type': 'Drink',       'recipe': 'Blend mango & yogurt',              'allergens': ['Milk']},
+            {'name': 'Sparkling Water',  'desc': '500 ml bottle',             'price': '1.80',  'cost': '0.20',  'type': 'Drink',       'recipe': 'Serve chilled',                     'allergens': []},
         ]
     },
     {
         'name': 'Starters',
         'elements': [
-            {'name': 'Patatas Bravas',           'desc': 'Fried potatoes with spicy sauce',    'price': '5.00', 'cost': '1.50', 'type': 'To share',    'recipe': 'Fry in oil, top with sauce.'},
-            {'name': 'Gazpacho Andaluz',         'desc': 'Cold tomato‐based soup',               'price': '4.50', 'cost': '1.20', 'type': 'First plate',  'recipe': 'Blend vegetables, chill.'},
-            {'name': 'Jamón Ibérico Platter',    'desc': 'Iberian ham with bread',               'price': '8.00', 'cost': '3.00', 'type': 'To share',    'recipe': 'Arrange on plate with bread.'},
-            {'name': 'Croquetas de Jamón',       'desc': 'Ham croquettes (6 units)',             'price': '4.00', 'cost': '1.00', 'type': 'First plate',  'recipe': 'Deep‐fry until golden.'},
-            {'name': 'Ensalada Mixta',           'desc': 'Mixed salad: lettuce, tomato, olives',  'price': '4.00', 'cost': '1.00', 'type': 'First plate',  'recipe': 'Mix all ingredients fresh.'},
+            {'name': 'Patatas Bravas',      'desc': 'Spicy potatoes',               'price': '5.00',  'cost': '1.50', 'type': 'To share',     'recipe': 'Fry & top with sauce',            'allergens': ['Celery']},
+            {'name': 'Gazpacho Andaluz',    'desc': 'Cold tomato soup',            'price': '4.50',  'cost': '1.20', 'type': 'First plate',   'recipe': 'Blend veg & chill',               'allergens': ['Celery']},
+            {'name': 'Shrimp Cocktail',     'desc': 'Chilled shrimp',              'price': '7.00',  'cost': '2.50', 'type': 'First plate',   'recipe': 'Serve with sauce',                 'allergens': ['Crustaceans']},
+            {'name': 'Cheese Platter',      'desc': 'Assorted cheeses',            'price': '8.50',  'cost': '3.00', 'type': 'To share',     'recipe': 'Arrange & garnish',                'allergens': ['Milk']},
+            {'name': 'Olive Tapenade',      'desc': 'Olives & herbs spread',       'price': '5.50',  'cost': '1.80', 'type': 'To share',     'recipe': 'Blend & serve with bread',         'allergens': ['Sulphites']},
+        ]
+    },
+    {
+        'name': 'Soups & Salads',
+        'elements': [
+            {'name': 'Minestrone Soup',       'desc': 'Hearty veg soup',             'price': '6.00',  'cost': '1.80', 'type': 'First plate',  'recipe': 'Simmer veg & beans',             'allergens': ['Celery']},
+            {'name': 'Chicken Caesar Salad',  'desc': 'Romaine, chicken, dressing', 'price': '7.50',  'cost': '2.50', 'type': 'First plate',  'recipe': 'Toss ingredients',                'allergens': ['Egg', 'Fish', 'Milk']},
+            {'name': 'Greek Salad',           'desc': 'Tomato, cucumber, feta',      'price': '6.50',  'cost': '2.00', 'type': 'First plate',  'recipe': 'Mix & drizzle olive oil',         'allergens': ['Milk']},
+            {'name': 'Lentil Soup',           'desc': 'Spiced lentil broth',        'price': '5.50',  'cost': '1.50', 'type': 'First plate',  'recipe': 'Simmer lentils & spices',         'allergens': []},
+            {'name': 'Quinoa & Avocado Salad','desc': 'Superfood bowl',             'price': '8.00',  'cost': '2.50', 'type': 'First plate',  'recipe': 'Toss quinoa & avocado',           'allergens': []},
         ]
     },
     {
         'name': 'Main Courses',
         'elements': [
-            {'name': 'Entrecôte Steak',           'desc': 'Grilled ribeye steak (250g)',         'price': '12.00', 'cost': '6.00', 'type': 'Second plate', 'recipe': 'Season, grill to preference.'},
-            {'name': 'Pollo Asado',               'desc': 'Roast chicken half with potatoes',     'price': '9.00',  'cost': '4.00', 'type': 'Second plate', 'recipe': 'Marinate, roast until golden.'},
-            {'name': 'Paella Valenciana',         'desc': 'Rice with rabbit, chicken, beans',      'price': '11.00', 'cost': '5.00', 'type': 'Second plate', 'recipe': 'Cook rice with stock, meat, beans.'},
-            {'name': 'Bacalao a la Vizcaína',      'desc': 'Salt cod in tomato sauce',             'price': '10.00', 'cost': '4.00', 'type': 'Second plate', 'recipe': 'Soak cod, cook in sauce.'},
-            {'name': 'Lomo a la Navarra',          'desc': 'Pork loin wrapped in bacon',            'price': '11.50', 'cost': '5.50', 'type': 'Second plate', 'recipe': 'Grill pork wrapped in bacon.'},
+            {'name': 'Entrecôte Steak',     'desc': '250 g grilled ribeye',        'price': '14.00', 'cost': '7.00', 'type': 'Second plate', 'recipe': 'Season & grill',                  'allergens': []},
+            {'name': 'Pollo Asado',         'desc': 'Roast chicken half',         'price': '10.00', 'cost': '4.00', 'type': 'Second plate', 'recipe': 'Marinate & roast',                'allergens': []},
+            {'name': 'Paella Valenciana',   'desc': 'Rice with meat & veggies',   'price': '13.00', 'cost': '5.50', 'type': 'Second plate', 'recipe': 'Cook rice with stock',            'allergens': ['Molluscs', 'Celery']},
+            {'name': 'Salmon en Papillote', 'desc': 'Baked salmon parcel',        'price': '12.50', 'cost': '6.00', 'type': 'Second plate', 'recipe': 'Bake in parchment',               'allergens': ['Fish']},
+            {'name': 'Vegetable Stir-Fry',  'desc': 'Mixed veg & tofu',          'price': '9.00',  'cost': '3.00', 'type': 'Second plate', 'recipe': 'Stir-fry with soy sauce',         'allergens': ['Soybeans']},
+        ]
+    },
+    {
+        'name': 'Side Dishes',
+        'elements': [
+            {'name': 'French Fries',        'desc': 'Crispy potato fries',         'price': '3.50',  'cost': '1.00', 'type': 'To share',     'recipe': 'Deep-fry potatoes',                'allergens': []},
+            {'name': 'Steamed Vegetables',  'desc': 'Carrot, broccoli, beans',     'price': '4.00',  'cost': '1.20', 'type': 'To share',     'recipe': 'Steam & season',                    'allergens': []},
+            {'name': 'Garlic Bread',        'desc': 'Toasted with garlic butter', 'price': '3.00',  'cost': '0.80', 'type': 'To share',     'recipe': 'Bake with garlic butter',            'allergens': ['Milk']},
+            {'name': 'Onion Rings',         'desc': 'Battered & fried onions',     'price': '4.50',  'cost': '1.30', 'type': 'To share',     'recipe': 'Batter & fry',                      'allergens': ['Egg', 'Gluten']},
+            {'name': 'Mixed Olives',        'desc': 'Marinated olives',           'price': '3.50',  'cost': '0.90', 'type': 'To share',     'recipe': 'Marinate in herbs',                 'allergens': ['Sulphites']},
         ]
     },
     {
         'name': 'Desserts',
         'elements': [
-            {'name': 'Flan Casero',        'desc': 'Homemade custard flan',                   'price': '3.50',  'cost': '1.00', 'type': 'Dessert',      'recipe': 'Bake custard, add caramel.'},
-            {'name': 'Churros con Chocolate','desc': 'Fried dough sticks with thick chocolate','price': '4.50',  'cost': '1.20', 'type': 'Dessert',      'recipe': 'Fry dough, serve with hot chocolate.'},
-            {'name': 'Tarta de Queso',      'desc': 'Cheesecake with berry sauce',             'price': '4.00',  'cost': '1.50', 'type': 'Dessert',      'recipe': 'Bake cheesecake, top with berries.'},
+            {'name': 'Flan Casero',           'desc': 'Homemade custard',          'price': '3.50',  'cost': '1.00', 'type': 'Dessert',      'recipe': 'Bake custard with caramel',       'allergens': ['Egg', 'Milk']},
+            {'name': 'Churros con Chocolate', 'desc': 'Fried dough sticks',       'price': '4.50',  'cost': '1.20', 'type': 'Dessert',      'recipe': 'Fry & serve with chocolate',     'allergens': ['Gluten']},
+            {'name': 'Tarta de Queso',        'desc': 'Cheesecake with berries',   'price': '4.00',  'cost': '1.50', 'type': 'Dessert',      'recipe': 'Bake & top with fruit',          'allergens': ['Egg', 'Milk']},
+            {'name': 'Chocolate Mousse',      'desc': 'Light & airy',             'price': '4.50',  'cost': '1.20', 'type': 'Dessert',      'recipe': 'Fold whipped cream & chocolate', 'allergens': ['Egg', 'Milk']},
+            {'name': 'Fruit Sorbet',          'desc': 'Seasonal fruits',          'price': '3.00',  'cost': '0.70', 'type': 'Dessert',      'recipe': 'Freeze blended fruit',           'allergens': []},
+        ]
+    },
+    {
+        'name': 'Specials',
+        'elements': [
+            {'name': 'Lobster Thermidor',   'desc': 'Creamy lobster bake',        'price': '18.00', 'cost': '9.00', 'type': 'Second plate','recipe':'Bake lobster in mornay','allergens':['Molluscs','Milk']},
+            {'name': 'Duck à l’Orange',      'desc': 'Duck breast & orange sauce', 'price': '16.50', 'cost': '8.00', 'type': 'Second plate','recipe':'Roast duck with sauce','allergens':[]},
+            {'name': 'Beef Wellington',     'desc': 'Fillet in puff pastry',      'price': '17.00', 'cost': '8.50', 'type': 'Second plate','recipe':'Encase beef in pastry','allergens':['Egg','Gluten']},
+            {'name': 'Seafood Paella',      'desc': 'Rice with mixed seafood',    'price': '15.00', 'cost': '7.00', 'type': 'Second plate','recipe':'Cook rice & seafood','allergens':['Crustaceans','Molluscs']},
+            {'name': 'Vegan Buddha Bowl',   'desc': 'Grain & veggie bowl',        'price': '12.00', 'cost': '4.00', 'type': 'Second plate','recipe':'Assemble grains & veg','allergens':[]},
         ]
     },
 ]
 
-for cat_data in categories_data:
-    category_obj, cat_created = Category.objects.get_or_create(
-        menu=menu_obj,
-        name=cat_data['name'],
-        defaults={'active': True}
-    )
-    if cat_created:
-        log(f"  • Created Category: {cat_data['name']}")
-    else:
-        log(f"  • Category {cat_data['name']} already exists")
-
-    for elem in cat_data['elements']:
-        ce_obj, ce_created = CategoryElement.objects.get_or_create(
-            category=category_obj,
-            name=elem['name'],
+for c in categories_data:
+    cat, nc = Category.objects.get_or_create(menu=menu, name=c['name'], defaults={'active':True})
+    log(f"  • {'Created' if nc else 'Exists'} Category {c['name']}")
+    for e in c['elements']:
+        ce, ne = CategoryElement.objects.get_or_create(
+            category=cat, name=e['name'],
             defaults={
-                'description': elem['desc'],
-                'price':       elem['price'],
-                'cost':        elem['cost'],
-                'type':        elem['type'],
-                'recipe':      elem['recipe'],
-                'active':      True
+                'description':e['desc'],'price':e['price'],
+                'cost':e['cost'],'type':e['type'],
+                'recipe':e['recipe'],'active':True
             }
         )
-        if ce_created:
-            log(f"    • Created CategoryElement: {elem['name']} (in {cat_data['name']})")
-        else:
-            log(f"    • CategoryElement {elem['name']} already exists (in {cat_data['name']})")
-
+        if ne:
+            # load element icon from elements_icons/{name}.png
+            icon_file = f"{e['name']}.png"
+            icon_path = os.path.join(ELEMENTS_ICON_DIR, icon_file)
+            if os.path.exists(icon_path):
+                with open(icon_path,'rb') as f:
+                    ce.icon.save(icon_file, File(f), save=True)
+                log(f"    • Icon for {e['name']}")
+        log(f"    • {'Created' if ne else 'Exists'} Element {e['name']}")
+        # add allergens
+        for alg in e['allergens']:
+            try:
+                aobj = Allergen.objects.get(name=alg)
+                ce.allergens.add(aobj)
+                log(f"      – Added Allergen {alg}")
+            except Allergen.DoesNotExist:
+                log(f"      ! Missing Allergen {alg}")
 log("")
 
-# ────────────────────────────────────
-# PART F: CREATE MAPS, TABLES, TABLECELLS, BARS, BARCELLS
-# ────────────────────────────────────
-def code5(n):
-    return str(n).zfill(5)
+# — PART F: MAPS, TABLES, TABLECELLS & BARS —
+log("=== Seeding Maps + Tables + Bars ===")
+def pad5(n): return str(n).zfill(5)
 
-log("=== Creating maps, tables, and bars ===")
-
-# — Map 1: “COMEDOR” (26×24) —
-map1_obj, map1_created = Map.objects.get_or_create(
-    restaurant=restaurant,
-    name="COMEDOR",
-    defaults={'dimension_x': 26, 'dimension_y': 24}
-)
-if map1_created:
-    log("  • Created Map: COMEDOR (26×24)")
-else:
-    log("  • Map COMEDOR already exists")
-
-# 20 tables (2×2) in a 5×4 grid, base_y=7
-for i in range(20):
-    row, col = divmod(i, 5)
-    t_x0 = col * 5       # (2 + 3)
-    t_y0 = 7 + row * 5   # (2 + 3)
-    table_name = f"COMEDOR_tbl_{i+1:02d}"
-    code = code5(i+1)
-
-    tbl_obj, tbl_created = Table.objects.get_or_create(
-        map=map1_obj,
-        name=table_name,
-        defaults={
-            'open':               False,
-            'authentication_code': code,
-            'calling_waiter':     False
-        }
+layouts = [
+    # name, dx, dy, table_count, tw, th, cols, row_start
+    ("COMEDOR", 26, 24, 20, 2, 2, 5, 7),
+    ("SALA DE EVENTOS", 26, 17, 5, 2, 10, 5, 7),
+]
+for name, dx, dy, tcount, tw, th, cols, base_y in layouts:
+    mp, mnew = Map.objects.get_or_create(
+        restaurant=rest, name=name,
+        defaults={'dimension_x':dx, 'dimension_y':dy}
     )
-    if tbl_created:
-        log(f"    • Created Table: {table_name} at ({t_x0},{t_y0}) code={code}")
-    else:
-        log(f"    • Table {table_name} already exists")
-
-    existing_cells = set(tbl_obj.cells.values_list('x', 'y'))
-    for dx in range(2):
-        for dy in range(2):
-            cx, cy = t_x0 + dx, t_y0 + dy
-            if (cx, cy) not in existing_cells:
-                TableCell.objects.create(table=tbl_obj, x=cx, y=cy)
-
-# Bar 2×4 at top-right (x=24,y=0)
-bar1_obj, bar1_created = Bar.objects.get_or_create(map=map1_obj)
-if bar1_created:
-    log("    • Created Bar for COMEDOR at (24,0)")
-else:
-    log("    • Bar already exists for COMEDOR")
-
-existing_bar_cells = set(bar1_obj.cells.values_list('x', 'y'))
-for dx in range(2):
-    for dy in range(4):
-        bx, by = 24 + dx, dy
-        if (bx, by) not in existing_bar_cells:
-            BarCell.objects.create(bar=bar1_obj, x=bx, y=by)
-
-log("  • Finished setting up COMEDOR (tables + bar).\n")
-
-# — Map 2: “SALA DE EVENTOS” (26×17) —
-map2_obj, map2_created = Map.objects.get_or_create(
-    restaurant=restaurant,
-    name="SALA DE EVENTOS",
-    defaults={'dimension_x': 26, 'dimension_y': 17}
-)
-if map2_created:
-    log("  • Created Map: SALA DE EVENTOS (26×17)")
-else:
-    log("  • Map SALA DE EVENTOS already exists")
-
-# 5 tables (2×10) in a row, base_y=7
-for i in range(5):
-    t_x0, t_y0 = i * 5, 7
-    table_name = f"SALAEV_tbl_{i+1}"
-    code = code5(100 + i + 1)
-
-    tbl_obj, tbl_created = Table.objects.get_or_create(
-        map=map2_obj,
-        name=table_name,
-        defaults={
-            'open':               False,
-            'authentication_code': code,
-            'calling_waiter':     False
-        }
-    )
-    if tbl_created:
-        log(f"    • Created Table: {table_name} at ({t_x0},{t_y0}) code={code}")
-    else:
-        log(f"    • Table {table_name} already exists")
-
-    existing_cells = set(tbl_obj.cells.values_list('x', 'y'))
-    for dx in range(2):
-        for dy in range(10):
-            cx, cy = t_x0 + dx, t_y0 + dy
-            if (cx, cy) not in existing_cells:
-                TableCell.objects.create(table=tbl_obj, x=cx, y=cy)
-
-# Bar 2×4 at top-right (x=24,y=0)
-bar2_obj, bar2_created = Bar.objects.get_or_create(map=map2_obj)
-if bar2_created:
-    log("    • Created Bar for SALA DE EVENTOS at (24,0)")
-else:
-    log("    • Bar already exists for SALA DE EVENTOS")
-
-existing_bar2_cells = set(bar2_obj.cells.values_list('x', 'y'))
-for dx in range(2):
-    for dy in range(4):
-        bx, by = 24 + dx, dy
-        if (bx, by) not in existing_bar2_cells:
-            BarCell.objects.create(bar=bar2_obj, x=bx, y=by)
-
-log("  • Finished setting up SALA DE EVENTOS (tables + bar).\n\n")
-
-# ────────────────────────────────────
-# FINAL: SUMMARY
-log("=== INITIAL DATA SCRIPT COMPLETE ===")
-log(f"Restaurant “{restaurant.name}” now has:")
-log(f"  • {Worker.objects.filter(restaurant=restaurant).count()} workers")
-log(f"  • {Menu.objects.filter(restaurant=restaurant).count()} menu")
-log(f"  • {Category.objects.filter(menu=menu_obj).count()} categories")
-log(f"  • {CategoryElement.objects.filter(category__menu=menu_obj).count()} elements")
-log(f"  • {Map.objects.filter(restaurant=restaurant).count()} maps")
-log(f"  • {Table.objects.filter(map__restaurant=restaurant).count()} tables")
-log(f"  • {Bar.objects.filter(map__restaurant=restaurant).count()} bars")
+    log(f"  • {'Created' if mnew else 'Exists'} Map {name}")
+    # Tables
+    for i in range(tcount):
+        row, col = divmod(i, cols)
+        x0 = col * (tw+3)
+        y0 = base_y + row*(th+3)
+        tname = f"{name[:3]}_tbl_{i+1:02d}"
+        code = pad5(i+1)
+        tbl, tnew = Table.objects.get_or_create(
+            map=mp, name=tname,
+            defaults={'open':False,'authentication_code':code,'calling_waiter':False}
+        )
+        if tnew: log(f"    • Table {tname} at ({x0},{y0})")
+        existing = set(tbl.cells.values_list('x','y'))
+        for dx_ in range(tw):
+            for dy_ in range(th):
+                cx,cy = x0+dx_, y0+dy_
+                if (cx,cy) not in existing:
+                    TableCell.objects.create(table=tbl, x=cx, y=cy)
+    # Bar 2×4 in top-right, buffer >=3
+    bar, bnew = Bar.objects.get_or_create(map=mp)
+    log(f"    • {'Created' if bnew else 'Exists'} Bar for {name}")
+    existing = set(bar.cells.values_list('x','y'))
+    bx0, by0 = dx - tw - 2, 0  # leave 2-cell gap
+    for dx_ in range(tw):
+        for dy_ in range(4):
+            x_, y_ = bx0+dx_, by0+dy_
+            if (x_,y_) not in existing:
+                BarCell.objects.create(bar=bar, x=x_, y=y_)
 log("")
-log("**If you saw any “already exists” messages, it means this script was run before or some data was partially created.**")
-log("Everything that did not exist has now been created.")
 
-# ————————————— CLOSE LOG FILE —————————————
+# — FINAL SUMMARY —
+log("=== INITIAL DATA COMPLETE ===")
+log(f"Restaurant “{rest.name}” summary:")
+log(f"  • Workers: {Worker.objects.filter(restaurant=rest).count()}")
+log(f"  • Menu:    {Menu.objects.filter(restaurant=rest).count()}")
+log(f"  • Categories: {Category.objects.filter(menu=menu).count()}")
+log(f"  • Elements:   {CategoryElement.objects.filter(category__menu=menu).count()}")
+log(f"  • Maps:       {Map.objects.filter(restaurant=rest).count()}")
+log(f"  • Tables:     {Table.objects.filter(map__restaurant=rest).count()}")
+log(f"  • Bars:       {Bar.objects.filter(map__restaurant=rest).count()}")
+log("\nAll steps logged to data.txt.")
 log_file.close()
