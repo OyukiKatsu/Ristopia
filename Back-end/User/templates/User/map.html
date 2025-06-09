@@ -7,9 +7,6 @@
   {{ maps_json|default:'[]'|safe }}
 </script>
 
-<!-- CSRF Token -->
-<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-
 <!-- Main Container -->
 <div class="min-h-screen bg-[#fde68a] px-6 py-10">
 
@@ -56,7 +53,7 @@
       <button id="download-qrs-btn" class="bg-indigo-600 text-white rounded px-4 py-2 ml-2">Download QRs</button>
     </div>
 
-        <!-- TOOLBOX PANEL (slides in/out, mid-right) -->
+        <!-- TOOLBOX PANEL -->
     <div id="toolbox-panel" class="fixed inset-y-0 right-0 z-40 w-64 transform translate-x-full transition-transform duration-300 flex items-center">
       <div class="mx-2 w-full max-h-[90vh] bg-white rounded-lg shadow-lg p-6 overflow-y-auto">
         <h3 class="text-xl font-semibold mb-4 text-center">Toolbox</h3>
@@ -72,7 +69,7 @@
         <hr class="my-4"/>
         <p class="text-gray-600 text-sm mb-2">
           1) Choose a tool<br/>
-          2) Tables/Bars: click cells then "Create Item"<br/>
+          2) Tables/Bars: click cells then "Create"<br/>
           3) Delete: click any cell of an item to remove it
         </p>
         <p class="text-sm"><strong>Selected:</strong> <span id="current-tool">None</span></p>
@@ -174,10 +171,10 @@
   <div class="bg-white p-6 rounded shadow-lg w-full max-w-lg max-h-[80vh] overflow-auto">
     <h2 class="text-xl font-semibold mb-4">Select Tables for QR</h2>
     <div id="qr-list"></div>
-    <div class="mt-4 flex justify-between">
-      <button id="qr-select-all" class="px-4 py-2 bg-gray-300 rounded">Select All</button>
-      <div>
-        <button id="qr-cancel" class="px-4 py-2 bg-gray-300 rounded mr-2">Cancel</button>
+    <div class="mt-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <button id="qr-select-all" class="px-4 py-2 bg-gray-300 rounded w-full sm:w-auto">Select All</button>
+      <div class="flex justify-end gap-2 w-full sm:w-auto">
+        <button id="qr-cancel" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
         <button id="qr-confirm" class="px-4 py-2 bg-indigo-600 text-white rounded">Generate PDF</button>
       </div>
     </div>
@@ -185,13 +182,12 @@
 </div>
 
 
+
 <style>
-  /* default cells still get a border */
   #map-grid > div {
     @apply w-8 h-8 relative overflow-hidden box-border border cursor-pointer;
   }
 
-  /* table/bar cells dont get border */
   #map-grid > div.occupied {
     border: none;
   }
@@ -201,9 +197,6 @@
 
 <script>
 (function(){
-function getCSRFToken() {
-  return document.querySelector('[name=csrfmiddlewaretoken]').value;
-}
 
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -217,8 +210,8 @@ function getCSRFToken() {
   // 1) STATE, FLAGS, GLOBALS
   // ──────────────────────────────────────────────────────────────────────────
   let tempIdCounter = -1;
-  let viewOnly = allMaps.length > 0;    // Set "view only" mode if maps exist at load, then, are we in edit mode?
-  let currentIndex = 0;    // which map/floor is active?
+  let viewOnly = allMaps.length > 0;    // Set "view only" mode if maps exist at load
+  let currentIndex = 0;    // which map/floor is active
   const state = {
     w: 5, h: 5,
     items: {},             // { id: { tool, name, cells: [...] } }
@@ -486,7 +479,10 @@ function getCSRFToken() {
 
       const resp = await fetch(`/user/owner/${ownerId}/map-creator/floor/create`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()},
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+          },
         body: JSON.stringify({ name, w, h })
       });
 
@@ -551,7 +547,7 @@ function getCSRFToken() {
   if (allMaps.length) {
     loadMap(0);
   } else {
-    // Nnew restaurant require floor creation before continuing
+    // New restaurants requires floor creation before continuing
     viewOnly = false;
 
     // Show create floor modal repeatedly until a floor is created
@@ -568,7 +564,10 @@ function getCSRFToken() {
 
       const resp = await fetch(`/user/owner/${ownerId}/map-creator/floor/create`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()},
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
         body: JSON.stringify({ name, w, h })
       });
 
@@ -727,13 +726,13 @@ function getCSRFToken() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': getCSRFToken()
+          'X-CSRFToken': '{{ csrf_token }}'
         },
         body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error(await res.text());
       toastr.success('Maps saved successfully!');
-      // switch back to viewOnly
+      // switch back to viewOnly (Note: Since we reload the page dosnt really matter)
       viewOnly = true;
       saveBtn.classList.add('hidden');
       cancelBtn.classList.add('hidden');
@@ -822,7 +821,7 @@ function getCSRFToken() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': getCSRFToken(),
+          'X-CSRFToken': '{{ csrf_token }}',
         },
         body: JSON.stringify({ tables: selected })
       }

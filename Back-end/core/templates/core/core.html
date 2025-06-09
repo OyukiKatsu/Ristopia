@@ -51,7 +51,7 @@
     {% endif %}
   </div>
 
-  <div class="overflow-x-auto">
+  <div>
   {% block content %}
   {% endblock content %}
 
@@ -133,6 +133,8 @@ body {
 
 
 </style>
+
+<!-- User Dropdown Config -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const btn = document.getElementById("userMenuBtn");
@@ -153,7 +155,7 @@ body {
   });
 </script>
 
-
+<!-- Toast Config -->
 <script>
 
   toastr.options = {
@@ -187,27 +189,29 @@ body {
             {% endif %}
         {% endwith %}
     {% endfor %}
-{% endif %}
+  {% endif %}
 </script>
-  <script>
-    window.addEventListener("load", function() {
-      // Sidebar toggle
-      const menuToggle = document.getElementById("menu-toggle");
-      const sidebarMenu = document.getElementById("sidebar-menu");
-      const overlay = document.getElementById("menu-overlay");
 
-      // Open menu
-      menuToggle.addEventListener("click", function () {
-        sidebarMenu.classList.remove("-translate-x-full");
-        overlay.classList.remove("hidden");
-      });
+<!-- Sidebar Menu Config -->
+<script>
+  window.addEventListener("load", function() {
+    // Sidebar toggle
+    const menuToggle = document.getElementById("menu-toggle");
+    const sidebarMenu = document.getElementById("sidebar-menu");
+    const overlay = document.getElementById("menu-overlay");
 
-      // Close menu
-      overlay.addEventListener("click", function () {
-        sidebarMenu.classList.add("-translate-x-full");
-        overlay.classList.add("hidden");
-      });
+    // Open menu
+    menuToggle.addEventListener("click", function () {
+      sidebarMenu.classList.remove("-translate-x-full");
+      overlay.classList.remove("hidden");
     });
 
+    // Close menu
+    overlay.addEventListener("click", function () {
+      sidebarMenu.classList.add("-translate-x-full");
+      overlay.classList.add("hidden");
+    });
+  });
 </script>
+
 </html>

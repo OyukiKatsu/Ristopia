@@ -19,7 +19,7 @@ admin.site.register(models.TableCell)
 admin.site.register(models.BarCell)
 admin.site.register(models.Allergen)
 
-# To be able to multi select usen django admin for testing purposes.
+# To be able to multi select using allergens in django admin for testing purposes.
 @admin.register(CategoryElement)
 class CategoryElementAdmin(admin.ModelAdmin):
     filter_horizontal = ('allergens',)

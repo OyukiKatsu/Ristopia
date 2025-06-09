@@ -2,6 +2,7 @@
 {% load static tailwind_tags %}
 
 {% block content %}
+<!-- Show different page if table is not open-->
   {% if not table.open %}
     <div class="min-h-screen flex flex-col items-center justify-center bg-yellow-100">
       <h2 class="text-2xl font-semibold text-gray-700 mb-4">This table is currently closed.</h2>
@@ -11,36 +12,25 @@
       setTimeout(() => location.reload(), 5000);
     </script>
   {% else %}
-  {% csrf_token %}
+    {% csrf_token %}
     <div id="table-app" class="min-h-screen bg-yellow-200 flex flex-col">
-
       <!-- Header with Auth Button -->
       <header class="bg-white shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between z-10">
         <div class="flex items-center mb-2 sm:mb-0">
           {% if restaurant.icon %}
-            <img src="{{ restaurant.icon.url }}"
-                alt="{{ restaurant.name }}"
-                class="w-10 h-10 rounded-full mr-3 object-cover">
+            <img src="{{ restaurant.icon.url }}" alt="{{ restaurant.name }}" class="w-10 h-10 rounded-full mr-3 object-cover">
           {% endif %}
           <h1 class="text-xl font-bold">{{ restaurant.name }}</h1>
         </div>
 
         <div class="flex space-x-2 self-end">
           <!-- Authenticate/View Code Button -->
-          <button
-            @click="authenticated ? showYourCode() : openAuthModal()"
-            class="px-2 py-1 rounded-full text-xs sm:text-sm font-medium
-                  bg-yellow-400 text-white hover:bg-yellow-500"
-          >
+          <button @click="authenticated ? showYourCode() : openAuthModal()" class="px-2 py-1 rounded-full text-xs sm:text-sm font-medium bg-yellow-400 text-white hover:bg-yellow-500">
             [[ authenticated ? 'View Code' : 'Authenticate Here' ]]
           </button>
 
           <!-- Call Waiter Button -->
-          <button
-            @click="callWaiter"
-            class="px-2 py-1 rounded-full text-xs sm:text-sm font-medium
-                  bg-blue-500 text-white hover:bg-blue-600"
-          >
+          <button @click="callWaiter" class="px-2 py-1 rounded-full text-xs sm:text-sm font-medium bg-blue-500 text-white hover:bg-blue-600">
             Call Waiter
           </button>
         </div>
@@ -148,7 +138,7 @@
       </div>
 
 
-    <!-- EXISTING ORDERS MODAL -->
+      <!-- EXISTING ORDERS MODAL -->
       <div v-if="showExistingOrdersModal" @click.self="showExistingOrdersModal = false" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
         <div class="bg-white rounded-lg shadow-lg w-full max-w-md max-h-full overflow-y-auto p-6">
           <h3 class="text-xl font-semibold mb-4">My Orders</h3>
@@ -275,9 +265,6 @@
           }
         },
         methods: {
-          getCSRFToken() {
-            return this.getCookie('csrftoken');
-          },
           getCookie(name) {
             return document.cookie.split('; ').reduce((r, v) =>
               v.startsWith(name + '=') ? v.split('=')[1] : r, ''
@@ -291,7 +278,7 @@
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': this.getCSRFToken()
+                'X-CSRFToken': '{{ csrf_token }}'
               }
             })
             .then(r => r.json())
@@ -316,7 +303,7 @@
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': this.getCSRFToken()
+                'X-CSRFToken': '{{ csrf_token }}'
               },
               body: JSON.stringify({ code })
             })
@@ -347,7 +334,7 @@
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': this.getCSRFToken()
+                'X-CSRFToken': '{{ csrf_token }}'
               },
               body: JSON.stringify({ code })
             })
@@ -405,7 +392,7 @@
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
+                    'X-CSRFToken': '{{ csrf_token }}'
                   },
                   body: JSON.stringify({ items: payload })
                 }
@@ -456,7 +443,6 @@
             this.fetchElements();
           },
 
-          // Load existing orders
           async loadExistingOrders() {
             try {
               const resp = await fetch(window.location.pathname + 'orders/');

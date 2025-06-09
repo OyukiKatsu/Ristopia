@@ -7,7 +7,7 @@ from PIL import Image
 from django.utils.text import slugify
 from django.core import signing
 
-
+# Generate an encoded token
 def make_table_token(table):
     payload = {
         'restaurant_id': table.map.restaurant.id,
@@ -26,7 +26,7 @@ def make_table_token(table):
 def generate_table_qr(table, request):
     """
     Generates a QR for this Table instance pointing at its detail URL,
-    embeds the restaurant’s icon at center, and returns path and image content.
+    embeds the restaurant's icon at center, and returns path and image content.
     """
     # Build the URL dynamically using the request object
     token = make_table_token(table)

@@ -3,11 +3,9 @@ from django.urls import reverse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
-from core.utils import generate_table_qr
 from core.models import CategoryElement, Profile, Worker, TableOrder, Restaurante, Category, Menu, Map, Table, Bar, TableCell, BarCell, Allergen
 from django.contrib.auth.models import User
 from django.views.generic import TemplateView, View
-from django.urls import reverse
 from django.utils.timezone import now, timedelta
 from django.contrib.auth import authenticate, login
 from django.contrib import messages

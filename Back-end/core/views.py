@@ -4,6 +4,8 @@ from django.shortcuts import render
 def Index(request):
     return render(request, 'core/index.html')
 
+
+# Custom error pages
 def error_403(request, exception=None):
     return render(request, 'core/403.html', status=403)
 
