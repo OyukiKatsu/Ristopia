@@ -293,9 +293,10 @@ class OwnerView(LoginRequiredMixin, TemplateView):
         )
 
         # Aggregate profit and cost
-        profit = orders_today.aggregate(total_profit=Sum('category_element__price'))['total_profit'] or 0
+        intake = orders_today.aggregate(total_profit=Sum('category_element__price'))['total_profit'] or 0
         cost = orders_today.aggregate(total_cost=Sum('category_element__cost'))['total_cost'] or 0
-
+        profit = intake - cost
+        
         # Determine the top dish
         top_dish = (
             orders_today
