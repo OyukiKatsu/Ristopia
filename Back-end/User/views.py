@@ -580,7 +580,8 @@ class DashboardChartData(View):
             truncate     = TruncHour('date')
             label_format = "%H:%M"
         elif time_range == '1w':
-            start = now_time - timedelta(days=now_time.weekday())
+            start = (now_time - timedelta(days=now_time.weekday())) \
+                        .replace(hour=0, minute=0, second=0, microsecond=0)
             end   = start + timedelta(days=7)
             truncate     = TruncDay('date')
             label_format = "%A"
@@ -593,7 +594,7 @@ class DashboardChartData(View):
             return JsonResponse({'error': 'Invalid range'}, status=400)
 
         # Filter orders to the chosen date range
-        queryset = queryset.filter(date__range=(start, end))
+        queryset = queryset.filter(date__gte=start, date__lt=end)
 
         data = {}
         # Profit or cost chart
