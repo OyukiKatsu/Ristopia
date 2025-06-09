@@ -90,7 +90,7 @@ log("=== Seeding Allergens ===")
 for name in [
     "Gluten","Crustaceans","Egg","Fish","Peanuts",
     "Soybeans","Milk","Treenuts","Celery",
-    "Mustard","Sesame","Lupin","Molluscs",
+    "Mustard","Sesame","Lupin","Molluscs","Sulphites",
 ]:
     alg, created = Allergen.objects.get_or_create(name=name)
     p = os.path.join(ALLERGEN_ICON_DIR, f"{name}.png")
@@ -104,11 +104,11 @@ log(f"=== {Allergen.objects.count()} Allergens ===\n")
 # B. Owner
 log("=== Seeding Owner ===")
 owner_u, cu = User.objects.get_or_create(
-    username='Oyuki_Katsu', defaults={'email':'gjaraizm@gmail.com'}
+    username='Owner_Test', defaults={'email':'gjaraizm@gmail.com'}
 )
 if cu:
     owner_u.set_password('testing1234'); owner_u.save()
-    log("  • Created User Oyuki_Katsu / testing1234")
+    log("  • Created User Owner_Test / testing1234")
 else:
     log("  • User existed")
 owner_p, cp = Profile.objects.get_or_create(
@@ -135,10 +135,10 @@ rest, cr = Restaurante.objects.get_or_create(
 )
 if cr:
     # use your Asador_Montequinto.png
-    rest_icon = os.path.join(RESTAURANT_ICON_DIR, 'Asador_Montequinto.png')
+    rest_icon = os.path.join(RESTAURANT_ICON_DIR, 'Asador_Montequinto.jpg')
     if os.path.exists(rest_icon):
         with open(rest_icon,'rb') as f:
-            rest.icon.save('Asador_Montequinto.png', File(f), save=True)
+            rest.icon.save('Asador_Montequinto.jpg', File(f), save=True)
         log("  • Restaurant icon set")
     rest.save()
     log("  • Restaurant created")
