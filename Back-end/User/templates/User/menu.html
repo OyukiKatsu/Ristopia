@@ -171,9 +171,17 @@
 
     // Create menu
     $('#create-menu-btn').click(() => {
-      $.post(`/user/owner/${ownerId}/menu/create/`, {}, () => location.reload())
-       .fail(() => toastr.error('Could not create menu.'));
+      $.ajax({
+        url: `/user/owner/${ownerId}/menu/create/`,
+        method: 'POST',
+        headers:{
+                  'X-CSRFToken': csrftoken 
+                },
+        success: () => location.reload(),
+        error: () => toastr.error('Could not create menu.')
+      });
     });
+
 
   //============================================================================
   // Categories Logic 
