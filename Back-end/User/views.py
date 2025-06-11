@@ -1020,11 +1020,18 @@ class CreateWorkerView(LoginRequiredMixin, View):
             user.save()
 
             # Create worker profile
-            worker_profile = Profile.objects.create(
+            if picture:
+                worker_profile = Profile.objects.create(
                 user=user,
                 email=email,
-                profile_picture=picture if picture else None
+                profile_picture=picture
             )
+            else:
+                worker_profile = Profile.objects.create(
+                user=user,
+                email=email
+            )
+
 
             # Generate and assign unique login code
             login_code = self.generate_unique_login_code()
