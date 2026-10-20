@@ -76,10 +76,10 @@ The application is divided into three main modules: **Client**, **Restaurant**, 
 - [x] Update restaurant map
 - [x] Table code authentication client side(with cookie)
 - [x] Restaurant client view
+- [x] Waiter view
+- [x] Generate authentication codes for tables
 
 ### 🛠️ Still to do
 
-- [ ] Waiter view
-- [ ] Generate authentication codes for tables
 
 ---
