@@ -182,6 +182,7 @@ EMAIL_HOST_PASSWORD = 'barv mcgt mevu rdws'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'default from email'
+#This mail was test only, it is no longer active, is left here just to keep and example of configuration
 
 # Token config (seconds)
 PASSWORD_RESET_TIMEOUT = 3600
